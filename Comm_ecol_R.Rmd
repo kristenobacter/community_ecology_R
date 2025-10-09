@@ -1,8 +1,10 @@
 ---
-title: "Learning Community Ecology"
+title: "Community Ecology Part 2: Beta diversity of Jellybelly Communities"
 author: "Kristen DeAngelis"
-date: "2023-06-21"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -13,18 +15,45 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+Contained in this file
+ 1. Read in files and explore their contents, structure
+ 2. Ordination using NMDS & plotting
+ 3. PCoA and joint plots
+ 4. Richness & diversity calculations
+ 5. Iterative t-tests
+ 6. Network analysis
+
+```{r setup}
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+ 1. Read in files and explore their contents, structure
+```{r read in data}
+d = read.table("kmd_test_set.txt", header=T)
+f = read.delim("kmd_test_second.txt", header=T)
+j = read.table("") # jelly belly results
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Explore the data. This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
+
+Think of data exploration as a set of hypotheses that you test, in an iterative progression, with each experiment including expected results and evidence for whether you can accept or reject each hypothesis. 
+
+What kind of object is my data? What are the dimensions of my data? What are the variable names? What is the structure of my data object? 
+```{r exploring data}
+class(d)
+dim(d) # 1000 211
+names(d)
+str(d)
+```
+
+Display the first six rows of the data
+
+
+# How many taxa in each domain in the data set?
+
+levels(d$Taxonomy)
+dim(d[d$Taxonomy=="Archaea",])[1] #34
+dim(d[d$Taxonomy=="Bacteria",])[1] #832
+dim(d[d$Taxonomy=="Eukaryota",])[1] #134
