@@ -123,6 +123,7 @@ table(x)                 # Frequency table
 unique(x)                # Unique values
 ```
 
+
 These are some checks for deciding if the data needs cleaning. 
 ```{r}
 any(is.na(x))            # Are there any missing values?
@@ -149,7 +150,7 @@ rarecurve(t(as.matrix(x)), step = 1, col = "blue", label = FALSE,
           ylab = "Number of Species", 
           xlim = c(0, 100), ylim = c(0, 50))
 ```
-Based on this data, has the community been sampled adequately?
+Based on this data and assuming that the investigators stopped sampling after 100 samples, has the community been sampled adequately?
 > 
 
 Manipulate the x-axis limits to estimate how many samples would be needed to have sampled at least one of all 49 OTUs. Why is this number so much greater than 49, which is the number of OTUs or total richness?
@@ -175,30 +176,34 @@ In this case we've sampled all the taxa, but when there are thousands of OTUs, t
 
 ### Calculating estimated richness using Chao1. 
 
-The Chao1 estimator of total richness. 
+The Chao1 estimator of total richness. Chao1 estimates true richness based on the number of singletons and doubletons in your sample:  S.est = S.obs + (F1^2/2*F2), where F1 = number of singleton species in your sample, and F2 = number of doubleton species in your sample. Because most communities are very uneven, there are usually many singletons and doubletons. 
 
+This chunk measures the number of singletons and doubletons in the community sample. It then defines two new funcitons.
 
+S.obs is a function that counts the number of rows ()
 
+S.chao1 makes the Chao1 estimation (Sest), which is the observed richness (Sobs) plus the number of singletons and doubletons. this works because observed richness tends to be a dramatic under-estimate of actual richness, again due to the fact that communities tend to be very uneven. 
 ```{r}
+F1 <- sum(x==1) # number of singletons
+F2 <- sum(x==2) # number of doubletons
 
-
-# Total abundance (N)
-sum(jb$count)
-
-# Coverage
-coverage <- function(x = ""){
-  1 - (sum(x == 1) / rowSums(x))
+S.obs <- function(x = ""){
+  rowSums(x > 0) * 1
   }
 
-coverage(t(as.matrix(x))) 
+S.obs(t(as.matrix(x)))
 
-# Esimated richness with Chao1
 S.chao1 <- function(x = ""){
-  S.obs(x) + (sum(x == 1)^2) / (2 * sum(x == 2))
+  S.obs(x) + (F1^2) / (2 * F2)
 }
 
-S.chao1(t(jb[,5]))
+S.chao1(t(as.matrix(x)))
+```
+Why is observed and estimated richness the same in this practice case? 
+>
 
+Rank abundance curves are similar to rarefaction curves, but are based only on existing data (no extrapolation, or rarefaction), and show the abundance of organisms ordered by rank. The top ranked organism is the most abundant, and 
+```{r}
 # Visualize rank abundance curve
 RAC <- function(x = ""){
   x = as.vector(x)
@@ -208,7 +213,7 @@ RAC <- function(x = ""){
   }
 
 plot.new()
-site1 <- t(jb[,5])
+site1 <- t(as.matrix(x))
 
 rac <- RAC(x = site1)
 ranks <- as.vector(seq(1, length(rac)))
@@ -224,7 +229,10 @@ axis(side = 2, las = 1, cex.axis = 1.25,              # Manually adds Log-Scaled
      labels = c(1, 2, 5, 10, 20), at = log(c(1, 2, 5, 10, 20)))
 
 par <- opar                                           # Resets plotting parameters
+```
 
+
+```{r}
 # Smith and Wilson's Evenness Index (Evar)
 Evar <- function(x){
   x <- as.vector(x[x > 0])
