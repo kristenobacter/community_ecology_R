@@ -34,6 +34,21 @@ Contained in this file
 d = read.table("kmd_test_set.txt", header=T)
 f = read.delim("kmd_test_second.txt", header=T)
 j = read.table("") # jelly belly results
+
+```
+
+
+```{r generate test data}
+flavors <- c("Berry Blue", "Blueberry", "Bubble Gum", "Buttered Popcorn", "Cantaloupe", "Cappuccino", "Caramel Corn", "Chocolate Pudding", "Cinnamon", "Coconut", "Cotton Candy", "A&W Cream Soda", "Crushed Pineapple", "Dr Pepper", "French Vanilla", "Green Apple", "Island Punch", "Juicy Pear", "Kiwi", "Sunkist Lemon", "Lemon Drop", "Lemon Lime", "Licorice", "Sunkist Lime",  "Mango", "Margarita", "Mixed Berry Smoothie", "Sunkist Orange", "Orange Sherbet", "Peach", "Pina Colada", "Sunkist Pink Grapefruit", "Plum", "Pomegranate", "Raspberry", "Red Apple", "A&W Root Beer", "Sizzling Cinnamon", "Sour Cherry", "Strawberry Cheesecake", "Strawberry Daquiri", "Strawberry Jam", "Sunkist Tangerine", "Toasted Marshmallow", "Top Banana", "Tutti-Fruitti", "Very Cherry", "Watermelon", "Wild Blackberry")
+
+# Generate the matrix: 100 samples (rows) × 49 flavors (columns)
+jellybean_matrix <- matrix(
+  sample(10:100, size = 100 * 49, replace = TRUE),
+  nrow = 100,
+  ncol = 49,
+  dimnames = list(paste0("Sample_", 1:49), flavors)
+)
+
 ```
 
 Explore the data. This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
