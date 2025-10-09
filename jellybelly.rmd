@@ -33,11 +33,17 @@ In this Handout, we will perform the following tasks:
  4. Richness calculations
  5. 
 
+
 First we will set up our environment and load the libraries we'll need. 
 
+In this exercise, we will use a popular R package called `vegan`, which contains tools commonly used in ecological research, including analyses of $\alpha$-diversity.
+Jari Oksanen has created an excellent tutorial that provides an overview of the `vegan` package: http://cc.oulu.fi/~jarioksa/opetus/metodi/vegantutor.pdf
+
+Let's install the `vegan` package and its dependencies. If you are running `vegan` for the first time, you will need to install it with the `install.packages` function. Otherwise, we recommend you just use the `require` function to load `vegan` and its dependencies.
 ```{r setup, results = 'hide'}
 # rm(list = ls())
-
+#install.packages("vegan") # run this code if you have not previously installed vegan
+library(vegan)
 ```
 
 ## 2. Load data
@@ -51,6 +57,9 @@ set.seed(123)  # for reproducibility
 jellybean_counts <- sample(10:100, size = length(flavors), replace = TRUE)
 names(jellybean_counts) <- flavors
 
+set.seed(123) # for reproducibility
+community <- round(100 / (1:length(flavors)))  # Very uneven: few dominant, many rare
+names(community) <- flavors
 ```
 
 When you sampled your jellybean community, you should have recorded morphotypes (or species) as well as number of samples in each category. However, we're going to use a conventional species defintion for species here, so you should have gone back through and id'ed your individuals based on your best guess using the Jelly Belly flavor guide: https://www.jellybelly.com/flavor-guides
@@ -72,8 +81,8 @@ Think of data exploration as a set of hypotheses that you test, in an iterative 
 
 This is a function in base R that reports the object kind or class. We created this dataset so it should be class "integer."
 ```{r}
-class(jellybean_counts)
-x <- jellybean_counts
+x <- community
+class(x)
 ```
 What kind of object is my data? 
 > 
@@ -105,33 +114,83 @@ hist(x)                  # Histogram
 boxplot(x)               # Boxplot
 plot(density(x))         # Density plot
 barplot(table(x))        # Barplot for categorical or rounded data
+```
 
 
+These are two ways to examine the frequency distribution of the data. 
+```{r}
+table(x)                 # Frequency table
+unique(x)                # Unique values
+```
+
+These are some checks for deciding if the data needs cleaning. 
+```{r}
+any(is.na(x))            # Are there any missing values?
+sum(is.na(x))            # How many missing values?
+which(is.na(x))          # Where are the missing values?
 ```
 
 
 What are the variable names? What is the structure of my data object? 
 
 
-## 2) DIVERSITY CALCULATIONS
+## 4. Richness calculations
+
+Collector's curves are a way of plotting the shape of a community distribution, and to estimate total richness. 
+
+To estimate true richness, we can use rarefaction analysis, which fits a mathematical curve (a “rarefaction curve”) to your observed species. The following code graphs a rarefaction curve using the package `vegan`. 
+
+When the curve reaches the asymptote, 
+ - the point on the x-axis is the number of estimated samples that would need to be taken to saturate sampling, or ensure that every OTU was sampled at least once; 
+ - the place where the asymptote crosses the y-axis is the estimated total richness. In this activity, we have the benefit of knowing the total or true richness of our jellybelly community, which is 49. 
+```{r}
+rarecurve(t(as.matrix(x)), step = 1, col = "blue", label = FALSE,
+          xlab = "Number of Samples",
+          ylab = "Number of Species", 
+          xlim = c(0, 100), ylim = c(0, 50))
+```
+Based on this data, has the community been sampled adequately?
+> 
+
+Manipulate the x-axis limits to estimate how many samples would be needed to have sampled at least one of all 49 OTUs. Why is this number so much greater than 49, which is the number of OTUs or total richness?
+>
+
+
+### Collectors curves and estimating total richness by rarefaction. 
+
+This code estimates total observed richness by adding up all the values in the vector that are non-zero, and then plots a line for this value. This is not a mathematical estimation; to more accurately calcualte the asymptote, we'd need to fit a nonlinear model. 
+
+First we will measure the total observed richness. Then, we'll draw the asymptote of your curve, that is, a horizontal line which approaches (but will not intersect) with your rarefaction curve. Locate where the asymptote would cross the y-axis. This is your estimated true or total richness.
+```{r}
+observed_richness <- sum(x > 0)
+abline(h = observed_richness, col = "darkgreen", lty = 2)
+```
+This code also uses
+ - abline(h = ...) adds horizontal lines.
+ - lty = 2 and lty = 3 set dashed and dotted lines.
+
+In this case we've sampled all the taxa, but when there are thousands of OTUs, the observed richness is almost always lower (or much lower) than the true richness. Why?
+>
+
+
+### Calculating estimated richness using Chao1. 
+
+The Chao1 estimator of total richness. 
+
+
 
 ```{r}
+
+
 # Total abundance (N)
 sum(jb$count)
-
-# Observed richness
-S.obs <- function(x = ""){
-  rowSums(x > 0) * 1
-}
-
-S.obs(t(jb[,5]))
 
 # Coverage
 coverage <- function(x = ""){
   1 - (sum(x == 1) / rowSums(x))
   }
 
-coverage(t(jb$count)) 
+coverage(t(as.matrix(x))) 
 
 # Esimated richness with Chao1
 S.chao1 <- function(x = ""){
