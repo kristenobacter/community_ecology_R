@@ -7,35 +7,49 @@ editor_options:
   chunk_output_type: console
 ---
 
+## Overview
+
+This is the second part of two for practicing calculating measures of community diversity. In part 1, we explored the diversity metrics for a single community, or alpha diversity. In this part 2, we will explore the diversity metrics across mutliple communities, or beta diversity. 
+
+# Directions:
+1. Change "author" on line 3 (above) to your name.
+2. Complete as much of the assignment as possible during class; what you do not complete in class will need to be done on your own outside of class. 
+3. Use this handout as a guide; it contains a more complete description of data sets along with examples of proper scripting needed to carry out the exercise.
+4. Be sure to **answer the questions** in this assignment document. Space for your answers is provided in this document and is indicated by the ">" character. If you need a second paragraph be sure to start the first line with ">".
+
+Though the jelly belly data is available, we will use a a truncated dataset from this paper: https://doi.org/10.1016/j.soilbio.2013.06.010. This is a subset of a real dataset measured using amplicon sequencing analysis for soil decomposition study. 
+
+We are working in Rstudio, and will work using markdown. R markdown files are denoted by the file extension .Rmd. Markdown is a simple but powerful formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on how to get the most out of the Markdown language in R, see <http://rmarkdown.rstudio.com>.
+
+In this Handout, we will perform the following tasks:
+
+ 1. Read in files and explore their contents, structure
+ 4. Richness & diversity calculations
+ 2. Ordination using NMDS & plotting
+ 3. PCoA and joint plots
+ 5. Iterative t-tests
+ 6. Network analysis
+
+First we will set up our environment and load the libraries we'll need. 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-## R Markdown
+
+```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 
-Contained in this file
- 1. Read in files and explore their contents, structure
- 2. Ordination using NMDS & plotting
- 3. PCoA and joint plots
- 4. Richness & diversity calculations
- 5. Iterative t-tests
- 6. Network analysis
-
-```{r setup}
-
-```
-
-
- 1. Read in files and explore their contents, structure
+## 1. Read in files and explore their contents, structure.
+ 
 ```{r read in data}
-d = read.table("kmd_test_set.txt", header=T)
+d = read.delim("kmd_test_set.txt", header=T)
+community <- d[,2:186]
 f = read.delim("kmd_test_second.txt", header=T)
-j = read.table("") # jelly belly results
-
 ```
+
+For community ecology analyses, we ususall have two data matrixes: a primary matrix that is called a taxa table, and a secondary matrix of metadata. The primary matrix has one column for every sample, and one row for each taxon (or OTU, or as called in this dataset, cluster). 
 
 
 ```{r generate test data}
