@@ -73,9 +73,7 @@ In each cell of the matrix, the number denotes the count per species, which is t
 
 ## 3. Explore data 
 
-Before we move on, we will explore the data. For a small dataset like this, it is easy to look it over by eye. But when doing community analysis for complex communities like microbes, it is common to have data matrixes with thousands of rows. 
-
-Explore the data. This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
+Before we move on, we will explore the data. For a small dataset like this, it is easy to look it over by eye. But when doing community analysis for complex communities like microbes, it is common to have data matrixes with thousands of rows. These datasets are much to large to view directly, so they have to be explored. 
 
 Think of data exploration as a set of hypotheses that you test, in an iterative progression, with each experiment including expected results and evidence for whether you can accept or reject each hypothesis. 
 
