@@ -30,8 +30,8 @@ In this Handout, we will perform the following tasks:
  1. Set up our environment and load the libraries we'll need. 
  2. Read in files. 
  3. Explore new object contents and structure.
- 4. Richness calculations
- 5. 
+ 4. Rarefaction (collectors) curves & 
+ 5. Richness calculations
 
 
 First we will set up our environment and load the libraries we'll need. 
@@ -67,7 +67,7 @@ When you sampled your jellybean community, you should have recorded morphotypes 
 In each cell of the matrix, the number denotes the count per species, which is the number of beans in a sample belonging to morphotype. All the data should be loaded into the spreadsheet at the beginning of lab. We will read in the matrix of data for the whole class, then subset the data to include only the vector of data containing your sampling. 
 
 ```{r }
-jb.raw <- read.table("jellybelly.txt", sep = "\t", header = TRUE)
+#jb.raw <- read.table("jellybelly.txt", sep = "\t", header = TRUE)
 ```
 
 
@@ -135,7 +135,48 @@ which(is.na(x))          # Where are the missing values?
 What are the variable names? What is the structure of my data object? 
 
 
-## 4. Richness calculations
+## 4. Collectors curves and rank abundance curves. 
+
+Rank abundance curves  show the abundance of organisms ordered by rank. The top ranked organism is the most abundant, and there are often a lot of doubletons and singletons. These are the long tail of diversity, which for microbes extend with increased sampling, though diversity should theoretically be finite. 
+
+To visualize the rank abundance curve, we first define a function to calculate rank abundance. 
+```{r}
+RAC <- function(x = ""){
+  x = as.vector(x)
+  x.ab = x[x > 0]
+  x.ab.ranked = x.ab[order(x.ab, decreasing = TRUE)]
+  return(x.ab.ranked)
+  }
+```
+
+This code uses base R to build a curve. 
+```{r}
+plot.new()
+site1 <- t(as.matrix(x))
+
+rac <- RAC(x = site1)
+ranks <- as.vector(seq(1, length(rac)))
+opar <- par(no.readonly = TRUE)                       # Saves default plot parameters
+par(mar = c(5.1, 5.1, 4.1, 2.1))                      # New settings for par
+plot(ranks, log(rac), type = 'p', axes = F,           # Plots w/o axes
+     xlab = "Rank in abundance", ylab = "Abundance",
+     las = 1, cex.lab = 1.4, cex.axis = 1.25)
+
+box()                                                 # Manually adds border
+axis(side = 1, labels = T, cex.axis = 1.25)           # Manually adds X-axis
+axis(side = 2, las = 1, cex.axis = 1.25,              # Manually adds Log-Scaled Y-axis
+     labels = c(1, 2, 5, 10, 20, 100), at = log(c(1, 2, 5, 10, 20, 100)))
+
+par <- opar                                           # Resets plotting parameters
+```
+
+This is another way of making rank abundance curves using the package vegan.
+```{r}
+mod <- rad.lognormal(site1)
+mod
+plot(mod)
+```
+
 
 Collector's curves are a way of plotting the shape of a community distribution, and to estimate total richness. 
 
@@ -157,7 +198,7 @@ Manipulate the x-axis limits to estimate how many samples would be needed to hav
 >
 
 
-### Collectors curves and estimating total richness by rarefaction. 
+## 5. Calculating richness by rarefaction. 
 
 This code estimates total observed richness by adding up all the values in the vector that are non-zero, and then plots a line for this value. This is not a mathematical estimation; to more accurately calcualte the asymptote, we'd need to fit a nonlinear model. 
 
@@ -202,34 +243,6 @@ S.chao1(t(as.matrix(x)))
 Why is observed and estimated richness the same in this practice case? 
 >
 
-Rank abundance curves are similar to rarefaction curves, but are based only on existing data (no extrapolation, or rarefaction), and show the abundance of organisms ordered by rank. The top ranked organism is the most abundant, and 
-```{r}
-# Visualize rank abundance curve
-RAC <- function(x = ""){
-  x = as.vector(x)
-  x.ab = x[x > 0]
-  x.ab.ranked = x.ab[order(x.ab, decreasing = TRUE)]
-  return(x.ab.ranked)
-  }
-
-plot.new()
-site1 <- t(as.matrix(x))
-
-rac <- RAC(x = site1)
-ranks <- as.vector(seq(1, length(rac)))
-opar <- par(no.readonly = TRUE)                       # Saves default plot parameters
-par(mar = c(5.1, 5.1, 4.1, 2.1))                      # New settings for par
-plot(ranks, log(rac), type = 'p', axes = F,           # Plots w/o axes
-     xlab = "Rank in abundance", ylab = "Abundance",
-     las = 1, cex.lab = 1.4, cex.axis = 1.25)
-
-box()                                                 # Manually adds border
-axis(side = 1, labels = T, cex.axis = 1.25)           # Manually adds X-axis
-axis(side = 2, las = 1, cex.axis = 1.25,              # Manually adds Log-Scaled Y-axis
-     labels = c(1, 2, 5, 10, 20), at = log(c(1, 2, 5, 10, 20)))
-
-par <- opar                                           # Resets plotting parameters
-```
 
 
 ```{r}
