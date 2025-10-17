@@ -46,16 +46,13 @@ Let's install the `vegan` package and its dependencies. If you are running `vega
 library(vegan)
 ```
 
+
 ## 2. Load data
 
 This first chunk will create a model dataset for a mock jellybelly community. 
 
 ```{r create a model dataset}
 flavors <- c("Berry Blue", "Blueberry", "Bubble Gum", "Buttered Popcorn", "Cantaloupe", "Cappuccino", "Caramel Corn", "Chocolate Pudding", "Cinnamon", "Coconut", "Cotton Candy", "A&W Cream Soda", "Crushed Pineapple", "Dr Pepper", "French Vanilla", "Green Apple", "Island Punch", "Juicy Pear", "Kiwi", "Sunkist Lemon", "Lemon Drop", "Lemon Lime", "Licorice", "Sunkist Lime",  "Mango", "Margarita", "Mixed Berry Smoothie", "Sunkist Orange", "Orange Sherbet", "Peach", "Pina Colada", "Sunkist Pink Grapefruit", "Plum", "Pomegranate", "Raspberry", "Red Apple", "A&W Root Beer", "Sizzling Cinnamon", "Sour Cherry", "Strawberry Cheesecake", "Strawberry Daquiri", "Strawberry Jam", "Sunkist Tangerine", "Toasted Marshmallow", "Top Banana", "Tutti-Fruitti", "Very Cherry", "Watermelon", "Wild Blackberry")
-
-set.seed(123)  # for reproducibility
-jellybean_counts <- sample(10:100, size = length(flavors), replace = TRUE)
-names(jellybean_counts) <- flavors
 
 set.seed(123) # for reproducibility
 community <- round(100 / (1:length(flavors)))  # Very uneven: few dominant, many rare
@@ -66,10 +63,6 @@ When you sampled your jellybean community, you should have recorded morphotypes 
 
 In each cell of the matrix, the number denotes the count per species, which is the number of beans in a sample belonging to morphotype. All the data should be loaded into the spreadsheet at the beginning of lab. We will read in the matrix of data for the whole class, then subset the data to include only the vector of data containing your sampling. 
 
-```{r }
-#jb.raw <- read.table("jellybelly.txt", sep = "\t", header = TRUE)
-```
-
 
 ## 3. Explore data 
 
@@ -79,54 +72,56 @@ Think of data exploration as a set of hypotheses that you test, in an iterative 
 
 This is a function in base R that reports the object kind or class. We created this dataset so it should be class "integer."
 ```{r}
-x <- community
-class(x)
+X <- community
+class(X)
 ```
 What kind of object is my data? 
 > 
 
 This is a function in base R that reports the length of a vector or any other R object for which lenght has been defined. 
 ```{r}
-length(x)        # Number of elements
-head(x)          # First few values
-tail(x)          # Last few values
-summary(x)       # Min, 1st Qu., Median, Mean, 3rd Qu., Max
+length(X)        # Number of elements
+head(X)          # First few values
+tail(X)          # Last few values
+summary(X)       # Min, 1st Qu., Median, Mean, 3rd Qu., Max
 ```
 What is the length of my data? 
 >
 
 These are some descriptive statistics that can give a sense of the central tendencies of the data. 
 ```{r}
-mean(x)          # Average
-median(x)        # Middle value
-sd(x)            # Standard deviation
-var(x)           # Variance
-range(x)         # Min and max
-quantile(x)      # Percentiles
+mean(X)          # Average
+median(X)        # Middle value
+sd(X)            # Standard deviation
+var(X)           # Variance
+range(X)         # Min and max
+quantile(X)      # Percentiles
 ```
+What are the central tendencies of this data? Use complete sentences to tell the story.
+>
 
 
 These are some visualizations that can be used to see impressions of the data, which are particularly helpful for very large datasets. 
 ```{r}
-hist(x)                  # Histogram
-boxplot(x)               # Boxplot
-plot(density(x))         # Density plot
-barplot(table(x))        # Barplot for categorical or rounded data
+hist(X)                  # Histogram
+boxplot(X)               # Boxplot
+plot(density(X))         # Density plot
+barplot(table(X))        # Barplot for categorical or rounded data
 ```
 
 
 These are two ways to examine the frequency distribution of the data. 
 ```{r}
-table(x)                 # Frequency table
-unique(x)                # Unique values
+table(X)                 # Frequency table
+unique(X)                # Unique values
 ```
 
 
 These are some checks for deciding if the data needs cleaning. 
 ```{r}
-any(is.na(x))            # Are there any missing values?
-sum(is.na(x))            # How many missing values?
-which(is.na(x))          # Where are the missing values?
+any(is.na(X))            # Are there any missing values?
+sum(is.na(X))            # How many missing values?
+which(is.na(X))          # Where are the missing values?
 ```
 
 
@@ -150,7 +145,7 @@ RAC <- function(x = ""){
 This code uses base R to build a curve. 
 ```{r}
 plot.new()
-site1 <- t(as.matrix(x))
+site1 <- t(as.matrix(X))
 
 rac <- RAC(x = site1)
 ranks <- as.vector(seq(1, length(rac)))
@@ -168,7 +163,7 @@ axis(side = 2, las = 1, cex.axis = 1.25,              # Manually adds Log-Scaled
 par <- opar                                           # Resets plotting parameters
 ```
 
-This is another way of making rank abundance curves using the package vegan.
+This is another way of making rank abundance curves using the package vegan. It overlays a lognormal fit onto the data of the rank abundance curve.
 ```{r}
 mod <- rad.lognormal(site1)
 mod
@@ -184,7 +179,7 @@ When the curve reaches the asymptote,
  - the point on the x-axis is the number of estimated samples that would need to be taken to saturate sampling, or ensure that every OTU was sampled at least once; 
  - the place where the asymptote crosses the y-axis is the estimated total richness. In this activity, we have the benefit of knowing the total or true richness of our jellybelly community, which is 49. 
 ```{r}
-rarecurve(t(as.matrix(x)), step = 1, col = "blue", label = FALSE,
+rarecurve(site1, step = 1, col = "blue", label = FALSE,
           xlab = "Number of Samples",
           ylab = "Number of Species", 
           xlim = c(0, 100), ylim = c(0, 50))
@@ -202,7 +197,7 @@ This code estimates total observed richness by adding up all the values in the v
 
 First we will measure the total observed richness. Then, we'll draw the asymptote of your curve, that is, a horizontal line which approaches (but will not intersect) with your rarefaction curve. Locate where the asymptote would cross the y-axis. This is your estimated true or total richness.
 ```{r}
-observed_richness <- sum(x > 0)
+observed_richness <- sum(X > 0)
 abline(h = observed_richness, col = "darkgreen", lty = 2)
 ```
 This code also uses
@@ -223,36 +218,44 @@ S.obs is a function that counts the number of rows ()
 
 S.chao1 makes the Chao1 estimation (Sest), which is the observed richness (Sobs) plus the number of singletons and doubletons. this works because observed richness tends to be a dramatic under-estimate of actual richness, again due to the fact that communities tend to be very uneven. 
 ```{r}
-F1 <- sum(x==1) # number of singletons
-F2 <- sum(x==2) # number of doubletons
+F1 <- sum(X==1) # number of singletons
+F2 <- sum(X==2) # number of doubletons
 
 S.obs <- function(x = ""){
   rowSums(x > 0) * 1
   }
 
-S.obs(t(as.matrix(x)))
+S.obs(site1)
 
 S.chao1 <- function(x = ""){
   S.obs(x) + (F1^2) / (2 * F2)
 }
 
-S.chao1(t(as.matrix(x)))
+S.chao1(site1)
 ```
 Why is observed and estimated richness the same in this practice case? 
 >
 
 
+### Evenness
 
+Evenness is a measure of how taxa are distributed in abundance. In a community of 10 taxa, if all are equally abundant, the evenness will be 1, or the highest value. However, communities tend to be uneven or very uneven. 
+
+Smith and Wilson's Evenness Index (Evar) is a measure of evenness in a community. 
 ```{r}
-# Smith and Wilson's Evenness Index (Evar)
 Evar <- function(x){
   x <- as.vector(x[x > 0])
   1 - (2/pi)*atan(var(log(x)))
   }
 
-Evar(t(jb[,5]))
+Evar(site1)
+```
 
-# Shannon's Diversity (H')
+
+### Diversity 
+
+Diversity is a combination of richness and evenness. Here we measure diversity using Shannon's Diversity Index, denoted as "H'". 
+```{r}
 ShanH <- function(x = ""){
   H = 0
   for (n_i in x){
@@ -264,7 +267,7 @@ ShanH <- function(x = ""){
   return(H)
 }
 
-ShanH(t(jb[,5]))
+ShanH(site1)
 ```
 
-
+Challenge: go back through this code and find the commands in the package vegan that perform the same calculations as the ones we did by hand. HINT: read the documentation! It can be foudn in the "Help" tab. 
