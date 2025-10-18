@@ -125,38 +125,87 @@ dim(d[d$Taxonomy=="Eukaryota",])[1] #134
 
 ## 2. Richness & diversity calculations
 
-Because richness and diversity are properties of single communities, and this dataset is a collection of 185 communities (variables, or columns in 'comm'), we need to make calculations across all the rows. R is very good at matrix algebra; you may want to review this topic 
+Because richness and diversity are properties of single communities, and this dataset is a collection of 185 communities (variables, or columns in 'comm'), we need to make calculations across all the rows. R is very good at matrix algebra; you may want to review this topic ...
 
- First need to convert abundance tables to presence-absence
+To calculate richness, first we need to convert abundance tables to presence-absence. 
 
+```{r}
 d.pa = d[,2:186]
-colnames(d.pa) = paste(f$ID, "_pa", sep="")
 threshold = 1
-for(c in 1:length(d.pa)){
- 	d.pa[which(d.pa[,c]>=threshold),c] = 1
- 	d.pa[which(d.pa[,c] < threshold),c] = 0
+for(x in 1:length(d.pa)){
+ 	d.pa[which(d.pa[,x]>=threshold),c] = 1
+ 	d.pa[which(d.pa[,x] < threshold),c] = 0
+}
+```
+
+Let's explore this a bit to make sure it worked. 
+```{r}
+d.pa[1:8,1:7]
+d.pa[40845:40852,1:7]
+```
+
+Why do you think there are mostly 1s for the lower-numbered clusters, and mostly zeros for the higher-numbered clusters?
+>
+
+Now we can use the presence/absence table to calculate observed richness. The adds the total for all the columns (variables, or sites), and then performes some exploratory analysis. 
+```{r}
+total.richness = sapply(d.pa,sum)
+head(total.richness)
+hist(total.richness)
+summary(total.richness)
+```
+
+It looks there is an outlier sample wiht a very high total richness. We can use which() to find it. this will return the item number (not the richness value). The second line of code subsets the total.richness vector to show the value of that index in the vector. 
+```{r}
+which(total.richness > 5000)
+total.richness[29]
+d1 <- d[, -30]
+
+d.pa1 = d1[,2:185]
+threshold = 1
+for(x in 1:length(d.pa1)){
+ 	d.pa[which(d.pa1[,x]>=threshold),c] = 1
+ 	d.pa[which(d.pa1[,x] < threshold),c] = 0
 }
 
-# Here is the calculation for total richness
+total.richness = sapply(d.pa1,sum)
+head(total.richness)
+hist(total.richness)
+summary(total.richness)
+```
 
-total.richness = sapply(d.pa,sum)
-f1 = cbind(f, total.richness)
 
-# Statistics on total richness
+This line adds the calculation to the secondary matrix. This is so we can use the data on the samples (variables, or sites) to peform statistics. 
+```{r}
+rownames(f) <- f$ID
+f1$total.richness <- total.richness[rownames(f)]
+head(f1)
+```
 
-summary(aov(total.richness ~ site, data=f1)) # ***
-summary(aov(total.richness ~ site, data=f1[f1$type=="Soil",])) # **
-summary(aov(total.richness ~ site, data=f1[f1$type=="Litt",])) # **
+Now that we have observed richness calculated for all the sites, we can perform statistics on richness. In this case we want to know if richness varies by site, and if it varies by site if we separate soil samples "Soil" from litter samples "Litt".
 
-summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # **
+```{r}
+summary(aov(total.richness ~ site, data=f1)) # n.s.
+summary(aov(total.richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0883
+summary(aov(total.richness ~ site, data=f1[f1$type=="Litt",])) # n.s.
+```
+
+Because there was a difference in total richness by soil type, we will keep them separate and explore if there is a variation in richness over time ("T"). This treats time as a discreet variable, but in some cases it will make more sense to treat time as a continuous variable. 
+```{r}
+summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # n.s.
 summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
 TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
+```
 
+Now we'll make a plot of richness
+```{r}
 boxplot(total.richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)",
-	ylim=c(0,500),boxwex=0.3, at=1:6 - 0.2, ylim=c(0,4000), col="grey50")
+	boxwex=0.3, at=1:6 - 0.2, col="grey50")
 boxplot(total.richness ~ T, data=f1[f1$type=="Litt",], 
 	boxwex=0.3, at=1:6 + 0.2, add=TRUE)
-legend(1,500,c("Soil","Litter"), fill=c("grey50","white"))
+legend(4.5,5000,c("Soil","Litter"), fill=c("grey50","white"))
+
+```
 
 dev.off()
 
