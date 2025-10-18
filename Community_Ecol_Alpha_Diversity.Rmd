@@ -1,0 +1,295 @@
+---
+title: 'Community Ecology Part 1: Alpha diversity of a Jellybelly Community'
+author: "Kristen DeAngelis"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+## Overview
+
+This is a lab activity that will read in data from a single jellybelly community, use a variety of methods to explore the data, and then calculate some popular measures of alpha diversity for this single sample. 
+
+Some of this code was adapted from "Jellybelly Diversity" by "Jay T. Lennon" (https://github.com/LennonLab/jellybelly) and (https://github.com/QuantitativeBiodiversity/QB-2017/tree/master/Week2-Alpha). 
+
+
+# Directions:
+1. Change "author" on line 3 (above) to your name.
+2. Complete as much of the assignment as possible during class; what you do not complete in class can be done on your own outside of class. 
+3. Use this handout as a guide; it contains a more complete description of data sets along with examples of proper scripting needed to carry out the exercise.
+4. Be sure to **answer the questions** in this assignment document. Space for your answers is provided in this document and is indicated by the ">" character. If you need a second paragraph be sure to start the first line with ">".
+5. This activity is for practice and not points. If you would like feedback on your coding or answers, you may email it to Kristen (deangelis@umass.edu) or schedule a time to go over it together. 
+
+As we begin this module, you should have already completed the "Measuring Diversity Activity: the Jellybean Community." This includes doing all the calculations for diversity by hand. 
+
+We are working in Rstudio, and will work using markdown. R markdown files are denoted by the file extension .Rmd. Markdown is a simple but powerful formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on how to get the most out of the Markdown language in R, see <http://rmarkdown.rstudio.com>.
+
+In this Handout, we will perform the following tasks:
+
+ 1. Set up our environment and load the libraries we'll need. 
+ 2. Read in files. 
+ 3. Explore new object contents and structure.
+ 4. Rarefaction (collectors) curves 
+ 5. Richness calculations
+
+
+First we will set up our environment and load the libraries we'll need. 
+
+In this exercise, we will use a popular R package called `vegan`, which contains tools commonly used in ecological research, including analyses of $\alpha$-diversity.
+Jari Oksanen has created an excellent tutorial that provides an overview of the `vegan` package: http://cc.oulu.fi/~jarioksa/opetus/metodi/vegantutor.pdf
+
+
+## 1a. Set up environment...
+
+Let's install the `vegan` package and its dependencies. If you are running `vegan` for the first time, you will need to install it with the `install.packages` function. Otherwise, we recommend you just use the `require` function to load `vegan` and its dependencies.
+```{r setup, results = 'hide'}
+# rm(list = ls())
+#install.packages("vegan") # run this code if you have not previously installed vegan
+library(vegan)
+```
+
+
+## 1b. and Load data. 
+
+This first chunk will create a model dataset for a mock jellybelly community. First, we will define a vector describing the flavors of jellybellys. 
+
+Then, there are two ways to make a model community. The first ('jellybeans') is a simulation of the jellybelly activity. This has a sample size of 49 (same as the number of flavors), and each species (flavor) can have between 10 and 50 members. 
+
+The second creates a dataset of a similar size but with the distribution of species (flavors) as being very uneven. 
+
+```{r create a model dataset}
+flavors <- c("Berry Blue", "Blueberry", "Bubble Gum", "Buttered Popcorn", "Cantaloupe", "Cappuccino", "Caramel Corn", "Chocolate Pudding", "Cinnamon", "Coconut", "Cotton Candy", "A&W Cream Soda", "Crushed Pineapple", "Dr Pepper", "French Vanilla", "Green Apple", "Island Punch", "Juicy Pear", "Kiwi", "Sunkist Lemon", "Lemon Drop", "Lemon Lime", "Licorice", "Sunkist Lime",  "Mango", "Margarita", "Mixed Berry Smoothie", "Sunkist Orange", "Orange Sherbet", "Peach", "Pina Colada", "Sunkist Pink Grapefruit", "Plum", "Pomegranate", "Raspberry", "Red Apple", "A&W Root Beer", "Sizzling Cinnamon", "Sour Cherry", "Strawberry Cheesecake", "Strawberry Daquiri", "Strawberry Jam", "Sunkist Tangerine", "Toasted Marshmallow", "Top Banana", "Tutti-Fruitti", "Very Cherry", "Watermelon", "Wild Blackberry")
+
+set.seed(123) # for reproducibility
+
+# A typical jellybean sempling: pretty even community
+jellybeans <- sample(10:50, size = 49, replace = TRUE)
+names(jellybeans) <- flavors
+
+# A very uneven community: few dominant, many rare
+community <- round(100 / (1:length(flavors)))  
+names(community) <- flavors
+```
+
+When you sampled your jellybean community, you should have recorded morphotypes (or species) as well as number of samples in each category. However, we're going to use a conventional species defintion for species here, so you should have gone back through and id'ed your individuals based on your best guess using the Jelly Belly flavor guide: https://www.jellybelly.com/flavor-guides
+
+We will use the uneven community for this exercise, but if you have time, you can go back through and define X to be 'jellybeans' to see how these calculations look different for an even community.  
+```{r}
+X <- community
+```
+
+
+## 3. Explore data 
+
+Before we move on, we will explore the data. For a small dataset like this, it is easy to look it over by eye. But when doing community analysis for complex communities like microbes, it is common to have data matrixes with thousands of rows. These datasets are much to large to view directly, so they have to be explored. 
+
+Think of data exploration as a set of hypotheses that you test, in an iterative progression, with each experiment including expected results and evidence for whether you can accept or reject each hypothesis. 
+
+This is a function in base R that reports the object kind or class. We created this dataset so it should be class "integer."
+```{r}
+class(X)
+```
+What kind of object is my data? 
+> 
+
+This is a function in base R that reports the length of a vector or any other R object for which lenght has been defined. 
+```{r}
+length(X)        # Number of elements
+head(X)          # First few values
+tail(X)          # Last few values
+summary(X)       # Min, 1st Qu., Median, Mean, 3rd Qu., Max
+```
+What is the length of my data? 
+>
+
+These are some descriptive statistics that can give a sense of the central tendencies of the data. 
+```{r}
+mean(X)          # Average
+median(X)        # Middle value
+sd(X)            # Standard deviation
+var(X)           # Variance
+range(X)         # Min and max
+quantile(X)      # Percentiles
+```
+What are the central tendencies of this data? Use complete sentences to tell the story.
+>
+
+
+These are some visualizations that can be used to see impressions of the data, which are particularly helpful for very large datasets. 
+```{r}
+hist(X)                  # Histogram
+boxplot(X)               # Boxplot
+plot(density(X))         # Density plot
+barplot(table(X))        # Barplot for categorical or rounded data
+```
+
+
+These are two ways to examine the frequency distribution of the data. 
+```{r}
+table(X)                 # Frequency table
+unique(X)                # Unique values
+```
+
+
+These are some checks for deciding if the data needs cleaning. 
+```{r}
+any(is.na(X))            # Are there any missing values?
+sum(is.na(X))            # How many missing values?
+which(is.na(X))          # Where are the missing values?
+```
+
+
+What are the variable names? What is the structure of my data object? 
+
+
+## 4. Collectors curves and rank abundance curves. 
+
+Rank abundance curves  show the abundance of organisms ordered by rank. The top ranked organism is the most abundant, and there are often a lot of doubletons and singletons. These are the long tail of diversity, which for microbes extend with increased sampling, though diversity should theoretically be finite. 
+
+To visualize the rank abundance curve, we first define a function to calculate rank abundance. 
+```{r}
+RAC <- function(x = ""){
+  x = as.vector(x)
+  x.ab = x[x > 0]
+  x.ab.ranked = x.ab[order(x.ab, decreasing = TRUE)]
+  return(x.ab.ranked)
+  }
+```
+
+This code uses base R to build a curve. 
+```{r}
+plot.new()
+site1 <- t(as.matrix(X))
+
+rac <- RAC(x = site1)
+ranks <- as.vector(seq(1, length(rac)))
+opar <- par(no.readonly = TRUE)                       # Saves default plot parameters
+par(mar = c(5.1, 5.1, 4.1, 2.1))                      # New settings for par
+plot(ranks, log(rac), type = 'p', axes = F,           # Plots w/o axes
+     xlab = "Rank in abundance", ylab = "Abundance",
+     las = 1, cex.lab = 1.4, cex.axis = 1.25)
+
+box()                                                 # Manually adds border
+axis(side = 1, labels = T, cex.axis = 1.25)           # Manually adds X-axis
+axis(side = 2, las = 1, cex.axis = 1.25,              # Manually adds Log-Scaled Y-axis
+     labels = c(1, 2, 5, 10, 20, 100), at = log(c(1, 2, 5, 10, 20, 100)))
+
+par <- opar                                           # Resets plotting parameters
+```
+
+This is another way of making rank abundance curves using the package vegan. It overlays a lognormal fit onto the data of the rank abundance curve.
+```{r}
+mod <- rad.lognormal(site1)
+mod
+plot(mod)
+```
+
+
+Collector's curves are a way of plotting the shape of a community distribution, and to estimate total richness. 
+
+To estimate true richness, we can use rarefaction analysis, which fits a mathematical curve (a “rarefaction curve”) to your observed species. The following code graphs a rarefaction curve using the package `vegan`. 
+
+When the curve reaches the asymptote, 
+ - the point on the x-axis is the number of estimated samples that would need to be taken to saturate sampling, or ensure that every OTU was sampled at least once; 
+ - the place where the asymptote crosses the y-axis is the estimated total richness. In this activity, we have the benefit of knowing the total or true richness of our jellybelly community, which is 49. 
+```{r}
+rarecurve(site1, step = 1, col = "blue", label = FALSE,
+          xlab = "Number of Samples",
+          ylab = "Number of Species", 
+          xlim = c(0, 100), ylim = c(0, 50))
+```
+Based on this data and assuming that the investigators stopped sampling after 100 samples, has the community been sampled adequately?
+> 
+
+Manipulate the x-axis limits to estimate how many samples would be needed to have sampled at least one of all 49 OTUs. Why is this number so much greater than 49, which is the number of OTUs or total richness?
+>
+
+
+## 5. Calculating richness by rarefaction. 
+
+This code estimates total observed richness by adding up all the values in the vector that are non-zero, and then plots a line for this value. This is not a mathematical estimation; to more accurately calcualte the asymptote, we'd need to fit a nonlinear model. 
+
+First we will measure the total observed richness. Then, we'll draw the asymptote of your curve, that is, a horizontal line which approaches (but will not intersect) with your rarefaction curve. Locate where the asymptote would cross the y-axis. This is your estimated true or total richness.
+```{r}
+observed_richness <- sum(X > 0)
+
+rarecurve(site1, step = 1, col = "blue", label = FALSE,
+          xlab = "Number of Samples",
+          ylab = "Number of Species", 
+          xlim = c(0, 100), ylim = c(0, 50))
+
+abline(h = observed_richness, col = "darkgreen", lty = 2)
+```
+This code also uses
+ - abline(h = ...) adds horizontal lines.
+ - lty = 2 and lty = 3 set dashed and dotted lines.
+
+In this case we've sampled all the taxa, but when there are thousands of OTUs, the observed richness is almost always lower (or much lower) than the true richness. Why?
+>
+
+
+### Calculating estimated richness using Chao1. 
+
+The Chao1 estimator of total richness. Chao1 estimates true richness based on the number of singletons and doubletons in your sample:  S.est = S.obs + (F1^2/2*F2), where F1 = number of singleton species in your sample, and F2 = number of doubleton species in your sample. Because most communities are very uneven, there are usually many singletons and doubletons. 
+
+This chunk measures the number of singletons and doubletons in the community sample. It then defines two new funcitons.
+
+S.obs is a function that counts the number of rows ()
+
+S.chao1 makes the Chao1 estimation (Sest), which is the observed richness (Sobs) plus the number of singletons and doubletons. this works because observed richness tends to be a dramatic under-estimate of actual richness, again due to the fact that communities tend to be very uneven. 
+```{r}
+F1 <- sum(X==1) # number of singletons
+F2 <- sum(X==2) # number of doubletons
+
+S.obs <- function(x = ""){
+  rowSums(x > 0) * 1
+  }
+
+S.obs(site1)
+
+S.chao1 <- function(x = ""){
+  S.obs(x) + (F1^2) / (2 * F2)
+}
+
+S.chao1(site1)
+```
+Why is observed and estimated richness the same in this practice case? 
+>
+
+
+### Evenness
+
+Evenness is a measure of how taxa are distributed in abundance. In a community of 10 taxa, if all are equally abundant, the evenness will be 1, or the highest value. However, communities tend to be uneven or very uneven. 
+
+Smith and Wilson's Evenness Index (Evar) is a measure of evenness in a community. 
+```{r}
+Evar <- function(x){
+  x <- as.vector(x[x > 0])
+  1 - (2/pi)*atan(var(log(x)))
+  }
+
+Evar(site1)
+```
+
+
+### Diversity 
+
+Diversity is a combination of richness and evenness. Here we measure diversity using Shannon's Diversity Index, denoted as "H'". 
+```{r}
+ShanH <- function(x = ""){
+  H = 0
+  for (n_i in x){
+    if(n_i > 0) {
+      p = n_i / sum(x)
+      H = H - p*log(p) 
+    }
+  }
+  return(H)
+}
+
+ShanH(site1)
+```
+
+Challenge: go back through this code and find the commands in the package vegan that perform the same calculations as the ones we did by hand. HINT: read the documentation! It can be foudn in the "Help" tab. 
