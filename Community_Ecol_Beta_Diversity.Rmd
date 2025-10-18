@@ -39,7 +39,8 @@ First we will set up our environment and load the libraries we'll need.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
+library(vegan)
+library(plotrix)
 ```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
@@ -104,6 +105,17 @@ comm[1:5,1:7]
 head(comm[, grepl("^T1", colnames(comm))])
 ```
 
+Now we can do the same kind of data exploration for the secondary matrix. 
+```{r}
+class(f)
+dim(f)    # 185 7
+names(f)
+head(f)   # Display the first six rows of the data
+str(f)  
+```
+
+As we measure diversity of the community, we will add them to the secondary matrix f. 
+
 
 These are some checks for deciding if the data needs cleaning. 
 ```{r}
@@ -117,9 +129,9 @@ which(is.na(comm))          # Where are the missing values?
 
 ```{r}
 levels(as.factor(d$Taxonomy))
-dim(d[d$Taxonomy=="Archaea",])[1] #34
-dim(d[d$Taxonomy=="Bacteria",])[1] #832
-dim(d[d$Taxonomy=="Eukaryota",])[1] #134
+dim(d[d$Taxonomy=="Archaea",])[1]   # 588 
+dim(d[d$Taxonomy=="Bacteria",])[1]  # 37873
+dim(d[d$Taxonomy=="Eukaryota",])[1] # 2391
 ```
 
 
@@ -133,8 +145,8 @@ To calculate richness, first we need to convert abundance tables to presence-abs
 d.pa = d[,2:186]
 threshold = 1
 for(x in 1:length(d.pa)){
- 	d.pa[which(d.pa[,x]>=threshold),c] = 1
- 	d.pa[which(d.pa[,x] < threshold),c] = 0
+ 	d.pa[which(d.pa[,x]>=threshold),x] = 1
+ 	d.pa[which(d.pa[,x] < threshold),x] = 0
 }
 ```
 
@@ -158,14 +170,15 @@ summary(total.richness)
 It looks there is an outlier sample wiht a very high total richness. We can use which() to find it. this will return the item number (not the richness value). The second line of code subsets the total.richness vector to show the value of that index in the vector. 
 ```{r}
 which(total.richness > 5000)
-total.richness[29]
+total.richness[29] # 7532
 d1 <- d[, -30]
+f1 <- f[-29,]
 
 d.pa1 = d1[,2:185]
 threshold = 1
 for(x in 1:length(d.pa1)){
- 	d.pa[which(d.pa1[,x]>=threshold),c] = 1
- 	d.pa[which(d.pa1[,x] < threshold),c] = 0
+ 	d.pa1[which(d.pa1[,x]>=threshold),x] = 1
+ 	d.pa1[which(d.pa1[,x] < threshold),x] = 0
 }
 
 total.richness = sapply(d.pa1,sum)
@@ -177,8 +190,8 @@ summary(total.richness)
 
 This line adds the calculation to the secondary matrix. This is so we can use the data on the samples (variables, or sites) to peform statistics. 
 ```{r}
-rownames(f) <- f$ID
-f1$total.richness <- total.richness[rownames(f)]
+rownames(f1) <- f1$ID
+f1$total.richness <- total.richness[rownames(f1)]
 head(f1)
 ```
 
@@ -186,56 +199,61 @@ Now that we have observed richness calculated for all the sites, we can perform 
 
 ```{r}
 summary(aov(total.richness ~ site, data=f1)) # n.s.
-summary(aov(total.richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0883
+summary(aov(total.richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0386 *
 summary(aov(total.richness ~ site, data=f1[f1$type=="Litt",])) # n.s.
 ```
 
 Because there was a difference in total richness by soil type, we will keep them separate and explore if there is a variation in richness over time ("T"). This treats time as a discreet variable, but in some cases it will make more sense to treat time as a continuous variable. 
 ```{r}
-summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # n.s.
+summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # ***
 summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
+TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Soil",]))
 TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
 ```
 
-Now we'll make a plot of richness
+Now we'll make a plot of richness. This uses base R. 
 ```{r}
 boxplot(total.richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)",
 	boxwex=0.3, at=1:6 - 0.2, col="grey50")
 boxplot(total.richness ~ T, data=f1[f1$type=="Litt",], 
 	boxwex=0.3, at=1:6 + 0.2, add=TRUE)
-legend(4.5,5000,c("Soil","Litter"), fill=c("grey50","white"))
+legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 
 ```
 
-dev.off()
 
-# A different way to plot
-library(plotrix)
+Here is a different way to plot 
+```{r}
+t.test(total.richness ~ type, data=f1) # n.s.
 
-t.test(total.richness ~ type, data=f1) # *
-
-tapply(f1$total.richness, f1$type, mean)
-# Litt 232.266, Soil 213.143
-tapply(f1$total.richness, f1$type, sd)
-# sd Litt 59.3, Soil 52.6
-x=c(1,2)
-y=c(232.3,213.1)
-yci=c(59.3, 52.6)
+y = tapply(f1$total.richness, f1$type, mean) # Litt 232.266, Soil 213.143
+yci = tapply(f1$total.richness, f1$type, sd) # sd Litt 59.3, Soil 52.6
 
 stripchart(total.richness ~ type, data=f1, method="jitter", vertical=TRUE, pch=21,
-	ylab="Richness", xlim=c(0.5,2.5), ylim=c(0,500))
-text(1,232.2,"_________", cex=2)
-text(2,213.1,"_________", cex=2)
-plotCI(x,y,yci, add=TRUE, pch=NA, scol="grey10", sfrac=0.08)
+	ylab="Richness", xlim=c(0.5,2.5), ylim=c(0,5000))
+text(1,y[1],"_________", cex=2)
+text(2,y[2],"_________", cex=2)
+plotCI(c(1,2), y, yci, add=TRUE, pch=NA, scol="grey10", sfrac=0.08)
 text(0.7,490,"P<0.05")
+```
 
-dev.off()
+And another way to plot using ggplot. 
+```{r}
 
+```
+
+
+Now we can measure the other metrics of diversity and add them to the secondary matrix. 
+
+```{r}
 divB = t(d[d$Taxonomy=="Bacteria",2:186])
 H <- diversity(divB, index="shannon") # Shannon's diversity
 # this can also calculate simpsons and inverse simpsons
+
 J = H/log(specnumber(divB)) # Pielou's J evenness index
 f2 = cbind(f1,H,J)
+
+```
 
 
 
