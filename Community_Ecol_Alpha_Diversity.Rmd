@@ -31,8 +31,8 @@ In this Handout, we will perform the following tasks:
  1. Set up our environment and load the libraries we'll need. 
  2. Read in files. 
  3. Explore new object contents and structure.
- 4. Rarefaction (collectors) curves 
- 5. Richness calculations
+ 4. Collectors curves and rank abundance curves. 
+ 5. Calculating richness by rarefaction, estimated richness using Chao1, evenness and diversity. 
 
 
 First we will set up our environment and load the libraries we'll need. 
@@ -207,7 +207,7 @@ Manipulate the x-axis limits to estimate how many samples would be needed to hav
 >
 
 
-## 5. Calculating richness by rarefaction. 
+## 5a. Calculating richness by rarefaction. 
 
 This code estimates total observed richness by adding up all the values in the vector that are non-zero, and then plots a line for this value. This is not a mathematical estimation; to more accurately calcualte the asymptote, we'd need to fit a nonlinear model. 
 
@@ -230,7 +230,7 @@ In this case we've sampled all the taxa, but when there are thousands of OTUs, t
 >
 
 
-### Calculating estimated richness using Chao1. 
+### 5b. Calculating estimated richness using Chao1. 
 
 The Chao1 estimator of total richness. Chao1 estimates true richness based on the number of singletons and doubletons in your sample:  S.est = S.obs + (F1^2/2*F2), where F1 = number of singleton species in your sample, and F2 = number of doubleton species in your sample. Because most communities are very uneven, there are usually many singletons and doubletons. 
 
@@ -259,7 +259,7 @@ Why is observed and estimated richness the same in this practice case?
 >
 
 
-### Evenness
+### 5c. Evenness
 
 Evenness is a measure of how taxa are distributed in abundance. In a community of 10 taxa, if all are equally abundant, the evenness will be 1, or the highest value. However, communities tend to be uneven or very uneven. 
 
@@ -274,7 +274,7 @@ Evar(site1)
 ```
 
 
-### Diversity 
+### 5d. Diversity 
 
 Diversity is a combination of richness and evenness. Here we measure diversity using Shannon's Diversity Index, denoted as "H'". 
 ```{r}
