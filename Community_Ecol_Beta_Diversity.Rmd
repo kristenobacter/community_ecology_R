@@ -39,6 +39,7 @@ First we will set up our environment and load the libraries we'll need.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(dplyr)
 library(vegan)
 library(plotrix)
 ```
@@ -60,21 +61,7 @@ For community ecology analyses, we ususall have two data matrixes: a primary mat
 In this script, the primary matrix is called 'd' and the secondary matrix is called 'f'. 
 
 
-```{r generate test data}
-flavors <- c("Berry Blue", "Blueberry", "Bubble Gum", "Buttered Popcorn", "Cantaloupe", "Cappuccino", "Caramel Corn", "Chocolate Pudding", "Cinnamon", "Coconut", "Cotton Candy", "A&W Cream Soda", "Crushed Pineapple", "Dr Pepper", "French Vanilla", "Green Apple", "Island Punch", "Juicy Pear", "Kiwi", "Sunkist Lemon", "Lemon Drop", "Lemon Lime", "Licorice", "Sunkist Lime",  "Mango", "Margarita", "Mixed Berry Smoothie", "Sunkist Orange", "Orange Sherbet", "Peach", "Pina Colada", "Sunkist Pink Grapefruit", "Plum", "Pomegranate", "Raspberry", "Red Apple", "A&W Root Beer", "Sizzling Cinnamon", "Sour Cherry", "Strawberry Cheesecake", "Strawberry Daquiri", "Strawberry Jam", "Sunkist Tangerine", "Toasted Marshmallow", "Top Banana", "Tutti-Fruitti", "Very Cherry", "Watermelon", "Wild Blackberry")
-
-# Generate the matrix: 100 samples (rows) × 49 flavors (columns)
-jellybean_matrix <- matrix(
-  sample(10:100, size = 100 * 49, replace = TRUE),
-  nrow = 100,
-  ncol = 49,
-  dimnames = list(paste0("Sample_", 1:49), flavors)
-)
-
-```
-
-
-To make the script reproducible, we will set a variable 'X' to point to the object containing the dataset we want to analyze. Here, we will define 'community' as only the part of the dataframe that contains the taxa abundances. 
+Some of the data manipulations require a matrix, which contains the abundance values only with no metadata. Here, we will define 'commu' as only the part of the dataframe that contains the taxa abundances. 
 
 ```{r}
 comm <- d[,2:186]
@@ -125,26 +112,34 @@ which(is.na(comm))          # Where are the missing values?
 ```
 
 
-# How many taxa in each domain in the data set?
+# How many taxa in each domain in the data set? We can use the pipe operator %>% in dplyr to count the instances of each Domain (in this dataset, unhelpfully called Taxonomy). The output for counts by phylum are very long, so we can modify the code to (1) only plot the domain Archaea, and (2) put all phyla with less than 3 members into a category called 'Other'. 
 
 ```{r}
-levels(as.factor(d$Taxonomy))
-dim(d[d$Taxonomy=="Archaea",])[1]   # 588 
-dim(d[d$Taxonomy=="Bacteria",])[1]  # 37873
-dim(d[d$Taxonomy=="Eukaryota",])[1] # 2391
+d %>% count(Taxonomy)
+d %>% count(Taxonomy, Phylum)
+
+table.by.Phylum <- d[d$Taxonomy=="Eukaryota",] %>% 
+  group_by(Phylum) %>% 
+  mutate(group_size = n()) %>% 
+  ungroup() %>% 
+  mutate(Phylum = ifelse(group_size < 3, "Other", Phylum)) %>%
+  count(Phylum)
+
+table.by.Phylum
+print(table.by.Phylum, n = Inf)
 ```
 
-How many phyla? Barcharts of relative abundances. 
+> How many phyla? Barcharts of relative abundances. 
 
 Make subsets for the three domains
-```{r}
+#```{r}
 d.a <- subset(d, Taxonomy == "Archaea")
 d.b <- subset(d, Taxonomy == "Bacteria")
 d.f <- subset(d, Taxonomy == "Eukaryota")
-```
+#```
 
 *** Challenge 
-Calculate measures of diversity for each of the domains. How might you expect them to behave differently across the experimental factors?
+Below, we will calculate measures of diversity for the whole community, which includes the three domains of life. How might you expect them to behave differently across the experimental factors? Calculate diversity separately for Archaea, Bacteria, and Eukaryotes. 
 >
 
 
@@ -174,71 +169,73 @@ Why do you think there are mostly 1s for the lower-numbered clusters, and mostly
 
 Now we can use the presence/absence table to calculate observed richness. The adds the total for all the columns (variables, or sites), and then performes some exploratory analysis. 
 ```{r}
-total.richness = sapply(d.pa,sum)
-head(total.richness)
-hist(total.richness)
-summary(total.richness)
+richness = sapply(d.pa,sum)
+head(richness)
+hist(richness)
+summary(richness)
 ```
 
-It looks there is an outlier sample wiht a very high total richness. We can use which() to find it. this will return the item number (not the richness value). The second line of code subsets the total.richness vector to show the value of that index in the vector. 
+It looks there are two outlier samples with a very high observed richness. We can use which() to find it. this will return the item number (not the richness value). The second line of code subsets the total.richness vector to show the value of that index in the vector. 
 ```{r}
-which(total.richness > 5000)
-total.richness[29] # 7532
-d1 <- d[, -30]
-f1 <- f[-29,]
+which(richness > 3000)
+richness[c(29,101)] # 7532
+d1 <- d[, -c(30,102)]
+f1 <- f[-c(29,101),]
 
-d.pa1 = d1[,2:185]
+d.pa1 = d1[,2:184]
 threshold = 1
 for(x in 1:length(d.pa1)){
  	d.pa1[which(d.pa1[,x]>=threshold),x] = 1
  	d.pa1[which(d.pa1[,x] < threshold),x] = 0
 }
 
-total.richness = sapply(d.pa1,sum)
-head(total.richness)
-hist(total.richness)
-summary(total.richness)
+richness = sapply(d.pa1,sum)
+head(richness)
+hist(richness)
+summary(richness)
 ```
 
 
 This line adds the calculation to the secondary matrix. This is so we can use the data on the samples (variables, or sites) to peform statistics. 
 ```{r}
 rownames(f1) <- f1$ID
-f1$total.richness <- total.richness[rownames(f1)]
+f1$richness <- richness[rownames(f1)]
 head(f1)
 ```
 
 Now that we have observed richness calculated for all the sites, we can perform statistics on richness. In this case we want to know if richness varies by site, and if it varies by site if we separate soil samples "Soil" from litter samples "Litt".
 
 ```{r}
-summary(aov(total.richness ~ site, data=f1)) # n.s.
-summary(aov(total.richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0386 *
-summary(aov(total.richness ~ site, data=f1[f1$type=="Litt",])) # n.s.
+summary(aov(richness ~ site, data=f1)) # n.s.
+summary(aov(richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0386 *
+summary(aov(richness ~ site, data=f1[f1$type=="Litt",])) # n.s.
 ```
 
 Because there was a difference in total richness by soil type, we will keep them separate and explore if there is a variation in richness over time ("T"). This treats time as a discreet variable, but in some cases it will make more sense to treat time as a continuous variable. 
 ```{r}
-summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # ***
-summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
-TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Soil",]))
-TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
+summary(aov(richness ~ T, data=f1[f1$type=="Soil",])) # ***
+summary(aov(richness ~ T, data=f1[f1$type=="Litt",])) # ***
+TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Soil",]))
+TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Litt",]))
 ```
 
-
-Richness by domain
+By adding the taxa metadata to the presence absence matrix, we can analyze subsets of the data by taxonomy. In this example, we will examine richness by domain. Merge combines the dataframe based on the column with names they both share. The first line makes the column 'Cluster', so that the merge on the second line will combine them. 
 ```{r}
-summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # ***
-summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
-TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Soil",]))
-TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
+d.pa1$Cluster <- rownames(d.pa1)
+d.pa2 <- merge(d.pa1, d1[,186:210])
+
+summary(aov(richness ~ T, data=f1[f1$type=="Soil",])) # ***
+summary(aov(richness ~ T, data=f1[f1$type=="Litt",])) # ***
+TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Soil",]))
+TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Litt",]))
 ```
 
 
 Now we'll make a plot of richness. This uses base R. 
 ```{r}
-boxplot(total.richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)",
+boxplot(richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)",
 	boxwex=0.3, at=1:6 - 0.2, col="grey50")
-boxplot(total.richness ~ T, data=f1[f1$type=="Litt",], 
+boxplot(richness ~ T, data=f1[f1$type=="Litt",], 
 	boxwex=0.3, at=1:6 + 0.2, add=TRUE)
 legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 
@@ -247,12 +244,12 @@ legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 
 Here is a different way to plot 
 ```{r}
-t.test(total.richness ~ type, data=f1) # n.s.
+t.test(richness ~ type, data=f1) # n.s.
 
-y = tapply(f1$total.richness, f1$type, mean) # Litt 232.266, Soil 213.143
-yci = tapply(f1$total.richness, f1$type, sd) # sd Litt 59.3, Soil 52.6
+y = tapply(f1$richness, f1$type, mean) # Litt 232.266, Soil 213.143
+yci = tapply(f1$richness, f1$type, sd) # sd Litt 59.3, Soil 52.6
 
-stripchart(total.richness ~ type, data=f1, method="jitter", vertical=TRUE, pch=21,
+stripchart(richness ~ type, data=f1, method="jitter", vertical=TRUE, pch=21,
 	ylab="Richness", xlim=c(0.5,2.5), ylim=c(0,5000))
 text(1,y[1],"_________", cex=2)
 text(2,y[2],"_________", cex=2)
