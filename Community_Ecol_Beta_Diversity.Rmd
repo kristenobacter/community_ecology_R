@@ -42,6 +42,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(vegan)
 library(plotrix)
+library(ggplot2)
 ```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
@@ -195,7 +196,6 @@ hist(richness)
 summary(richness)
 ```
 
-
 This line adds the calculation to the secondary matrix. This is so we can use the data on the samples (variables, or sites) to peform statistics. 
 ```{r}
 rownames(f1) <- f1$ID
@@ -219,10 +219,11 @@ TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Soil",]))
 TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Litt",]))
 ```
 
-By adding the taxa metadata to the presence absence matrix, we can analyze subsets of the data by taxonomy. In this example, we will examine richness by domain. Merge combines the dataframe based on the column with names they both share. The first line makes the column 'Cluster', so that the merge on the second line will combine them. 
+By adding the taxa metadata to the presence absence matrix, we can analyze subsets of the data by taxonomy. In this example, we will examine richness by domain. We'll combine the two dataframes using cbind, but this is risky unless you are VERY SURE that your rows have not changed order. Merge is a better way to combine the dataframe based on the column with names they both share. The first line makes the column 'Cluster', so that the merge on the second line will combine them. However, merge() is slow for a big dataset like this (especially on my laptop), so we'll use cbind(). 
 ```{r}
 d.pa1$Cluster <- rownames(d.pa1)
-d.pa2 <- merge(d.pa1, d1[,186:210])
+d.pa2 <- cbind(d.pa1, d1[,185:209])
+#d.pa2 <- merge(d.pa1, d1[,185:209])
 
 summary(aov(richness ~ T, data=f1[f1$type=="Soil",])) # ***
 summary(aov(richness ~ T, data=f1[f1$type=="Litt",])) # ***
@@ -230,51 +231,55 @@ TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Soil",]))
 TukeyHSD(aov(richness ~ T, data=f1[f1$type=="Litt",]))
 ```
 
+Now we can measure the other metrics of diversity and add them to the secondary matrix. 
+```{r}
+div.b <- t(d1[d1$Taxonomy=="Bacteria",2:184])
+
+Chao.b <- t(estimateR(div.b))
+H.b <- diversity(div.b, index="shannon") # Shannon's diversity
+# this can also calculate simpsons and inverse simpsons
+
+J.b <- H.b/log(specnumber(div.b)) # Pielou's J evenness index
+f2 <- cbind(f1, Chao.b, H.b, J.b)
+
+```
 
 Now we'll make a plot of richness. This uses base R. 
 ```{r}
 boxplot(richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)",
-	boxwex=0.3, at=1:6 - 0.2, col="grey50")
+	boxwex=0.3, at=1:6 - 0.2, col="grey50", ylim=c(0,3250))
 boxplot(richness ~ T, data=f1[f1$type=="Litt",], 
 	boxwex=0.3, at=1:6 + 0.2, add=TRUE)
 legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 
 ```
 
-
 Here is a different way to plot 
 ```{r}
-t.test(richness ~ type, data=f1) # n.s.
+t.test(richness ~ type, data=f2) # . p = 0.0832
+t.test(S.chao1 ~ type, data=f2) # ** p = 0.0075
 
-y = tapply(f1$richness, f1$type, mean) # Litt 232.266, Soil 213.143
-yci = tapply(f1$richness, f1$type, sd) # sd Litt 59.3, Soil 52.6
+y = tapply(f2$S.chao1, f2$type, mean) # Litt 232.266, Soil 213.143
+yci = tapply(f2$S.chao1, f2$type, sd) # sd Litt 59.3, Soil 52.6
 
-stripchart(richness ~ type, data=f1, method="jitter", vertical=TRUE, pch=21,
-	ylab="Richness", xlim=c(0.5,2.5), ylim=c(0,5000))
+stripchart(S.chao1 ~ type, data=f2, method="jitter", vertical=TRUE, pch=21,
+	ylab="Chao1 Estimated Richness", xlim=c(0.5,2.5), ylim=c(0,8000))
 text(1,y[1],"_________", cex=2)
 text(2,y[2],"_________", cex=2)
 plotCI(c(1,2), y, yci, add=TRUE, pch=NA, scol="grey10", sfrac=0.08)
-text(0.7,490,"P<0.05")
+text(1.5,2500,"P=0.008")
 ```
 
 And another way to plot using ggplot. 
 ```{r}
-
+ggplot(f2, aes(x = T, y = S.obs, fill = type)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Richness by Site and Sample Type",
+       x = "Site",
+       y = "Richness (observed)",
+       fill = "sample") +
+  theme_minimal()
 ```
-
-
-Now we can measure the other metrics of diversity and add them to the secondary matrix. 
-
-```{r}
-divB = t(d[d$Taxonomy=="Bacteria",2:186])
-H <- diversity(divB, index="shannon") # Shannon's diversity
-# this can also calculate simpsons and inverse simpsons
-
-J = H/log(specnumber(divB)) # Pielou's J evenness index
-f2 = cbind(f1,H,J)
-
-```
-
 
 
 ## 3. Ordination using NMDS & plotting
