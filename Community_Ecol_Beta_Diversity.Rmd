@@ -134,6 +134,19 @@ dim(d[d$Taxonomy=="Bacteria",])[1]  # 37873
 dim(d[d$Taxonomy=="Eukaryota",])[1] # 2391
 ```
 
+How many phyla? Barcharts of relative abundances. 
+
+Make subsets for the three domains
+```{r}
+d.a <- subset(d, Taxonomy == "Archaea")
+d.b <- subset(d, Taxonomy == "Bacteria")
+d.f <- subset(d, Taxonomy == "Eukaryota")
+```
+
+*** Challenge 
+Calculate measures of diversity for each of the domains. How might you expect them to behave differently across the experimental factors?
+>
+
 
 ## 2. Richness & diversity calculations
 
@@ -210,6 +223,16 @@ summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
 TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Soil",]))
 TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
 ```
+
+
+Richness by domain
+```{r}
+summary(aov(total.richness ~ T, data=f1[f1$type=="Soil",])) # ***
+summary(aov(total.richness ~ T, data=f1[f1$type=="Litt",])) # ***
+TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Soil",]))
+TukeyHSD(aov(total.richness ~ T, data=f1[f1$type=="Litt",]))
+```
+
 
 Now we'll make a plot of richness. This uses base R. 
 ```{r}
