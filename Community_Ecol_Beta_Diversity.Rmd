@@ -256,7 +256,7 @@ boxplot(richness ~ T, data=f1[f1$type=="Litt",],
 legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 ```
 
-Here is a different way to plot. Here I'll switch to plotting S.chao1 instead of (observed) richness. 
+Here is a different way to plot, using a package called lattice, which was a popular alternative to base R for plotting before ggplot took over. Here I'll switch to plotting S.chao1 instead of (observed) richness. 
 ```{r}
 t.test(richness ~ type, data=f2) # . p = 0.0832
 t.test(S.chao1 ~ type, data=f2) # ** p = 0.0075
@@ -355,8 +355,9 @@ ggplot(summary_df, aes(x = x_mean, y = y_mean, color = site, shape = type)) +
 *** Challenge
 Vegan has some smart ways to overlay metadata onto ordination plots. Check out these functions and maybe try one. 
 
-  help(ordiplot)
-  help(ordihull)
+  help(ordiplot)  # some better plotting funcitons for ordination 
+  help(ordihull)  # spider graphs on top of ordinations
+  help(envfit)    # fits environmental vectors onto ordinations
 
 
 Here are some ways to look for statistical clustering of your community by groups. 
@@ -374,45 +375,35 @@ adonis2(comm.no1s ~ f3$type, method="bray") # ***
 adonis2(comm.no1s ~ f3$site, method="bray") # ***
 
 anosim.type <- anosim(comm.no1s, f3$type)
-summary(anosim.type) # R=0.2072 ***
-anosim.site <- anosim(comm1, f$site)
-summary(anosim.site) # R=0.2128 *** 
+summary(anosim.type) # R=0.207 ***
+anosim.site <- anosim(comm.no1s, f3$site)
+summary(anosim.site) # R=0.248 *** 
 ```
 
-
-
+Here are some other 
 
 mantel() # to show difference between two sets
 varpart() # with hellinger transformation
-decostand() # will do the hellinger transformation for you, but
-			# it seems to be part of varpart so not needed now
-envfit() #
-
-
-Plot the solution giving the sites different colors and times different sizes
-```{r}
-
-```
-
 
 
 ## 4. PCoA and joint plots
 
+If your data are a 
 
+Here is one way to perform the principle coordinates analysis, or PCoA. 
 ```{r}
+dmat <- vegdist(comm.no1s, method = "bray")
+pcoa <- cmdscale(dmat)
 
+fit2 <- envfit(pcoa, f3[,3:8], perm=999, display="sites")
+fit2
 ```
 
-
-??cmdscale
-comm = t(d[,2:186])
-dmat = vegdist(comm, method="bray")
-pcoa = cmdscale(dmat)
-
-fit2 <- envfit(pcoa, f[,2:7], perm=999, display="sites")
-fit2
-
+There are some plotting functions that come with these functions, but as before, you can extract the variables from the object 'pcoa' and use whatever plotting function you like (base, lattice, ggplot) to make your displays nice. 
+```{r}
 plot(pcoa)
 plot(fit2, col="gray", display="sites")
 plot(fit2, p.max=0.1, col="red")
+```
+
 
