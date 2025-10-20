@@ -46,7 +46,7 @@ library(ggplot2)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 
-## 1b. Read in files and explore their contents, structure.
+## 1b. Read in files.
  
 ```{r read in data}
 d = read.delim("kmd_test_set.txt", header=T)
@@ -67,7 +67,9 @@ comm <- d[,2:186]
 ```
 
 
-Explore the data. This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
+## 1c. Explore the data. 
+
+This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
 
 Think of data exploration as a set of hypotheses that you test, in an iterative progression, with each experiment including expected results and evidence for whether you can accept or reject each hypothesis. 
 
