@@ -32,7 +32,11 @@ In this Handout, we will perform the following tasks:
 
 ## 1a. Set up environment. 
 
-First we will set up our environment and load the libraries we'll need. 
+First we will set up our environment and load the libraries we'll need. If you don't have these installed already, use this command to install the packages: 
+
+  install.packages("dplyr")  # for one install
+  install.packages(c("dplyr","vegan","plotrix","ggplot2"))  # for multiple packages
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -58,7 +62,6 @@ f = read.delim("kmd_test_second.txt", header=T)
 For community ecology analyses, we ususall have two data matrixes: a primary matrix that is called a taxa table, and a secondary matrix of metadata. The primary matrix has one column for every sample, and one row for each taxon (or OTU, or as called in this dataset, cluster). 
 
 In this script, the primary matrix is called 'd' and the secondary matrix is called 'f'. 
-
 
 Some of the data manipulations require a matrix, which contains the abundance values only with no metadata. Here, we will define 'commu' as only the part of the dataframe that contains the taxa abundances. 
 
@@ -112,13 +115,13 @@ which(is.na(comm))          # Where are the missing values?
 We should also check for rows with all zeros, and remove them. 
 ```{r}
 zero.y <- which(rowSums(comm)==0)
-comm1 <- comm[-zero.y,]
+comm.no0s <- comm[-zero.y,]
 
-zero.x <- which(colSums(comm)==0)
+zero.x <- which(colSums(comm)==0) # none 
 ```
 
 
-# How many taxa in each domain in the data set? We can use the pipe operator %>% in dplyr to count the instances of each Domain (in this dataset, unhelpfully called Taxonomy). The output for counts by phylum are very long, so we can modify the code to (1) only plot the domain Archaea, and (2) put all phyla with less than 3 members into a category called 'Other'. 
+How many taxa in each domain in the data set? We can use the pipe operator %>% in dplyr to count the instances of each Domain (in this dataset, unhelpfully called Taxonomy). The output for counts by phylum are very long, so we can modify the code to (1) only plot the domain Archaea, and (2) put all phyla with less than 3 members into a category called 'Other'. 
 
 ```{r}
 d %>% count(Taxonomy)
@@ -135,18 +138,17 @@ table.by.Phylum
 print(table.by.Phylum, n = Inf)
 ```
 
-> How many phyla? Barcharts of relative abundances. 
 
-Make subsets for the three domains
+*** Challenge 
+Below, we will calculate measures of diversity for the whole community, which includes the three domains of life. How might you expect them to behave differently across the experimental factors? Calculate diversity separately for Archaea, Bacteria, and Eukaryotes. 
+>
+
+If you wanted to explore metrics of diversity for the domains separately, you'd first need to make subsets for the three domains like this (remove the hashes '#' to un-block the chunk):
 #```{r}
 d.a <- subset(d, Taxonomy == "Archaea")
 d.b <- subset(d, Taxonomy == "Bacteria")
 d.f <- subset(d, Taxonomy == "Eukaryota")
 #```
-
-*** Challenge 
-Below, we will calculate measures of diversity for the whole community, which includes the three domains of life. How might you expect them to behave differently across the experimental factors? Calculate diversity separately for Archaea, Bacteria, and Eukaryotes. 
->
 
 
 ## 2. Richness & diversity calculations
@@ -156,7 +158,7 @@ Because richness and diversity are properties of single communities, and this da
 To calculate richness, first we need to convert abundance tables to presence-absence. 
 
 ```{r}
-d.pa = d[,2:186]
+d.pa = comm.no0s
 threshold = 1
 for(x in 1:length(d.pa)){
  	d.pa[which(d.pa[,x]>=threshold),x] = 1
@@ -167,7 +169,7 @@ for(x in 1:length(d.pa)){
 Let's explore this a bit to make sure it worked. 
 ```{r}
 d.pa[1:8,1:7]
-d.pa[40845:40852,1:7]
+d.pa[40843:40850,1:7]
 ```
 
 Why do you think there are mostly 1s for the lower-numbered clusters, and mostly zeros for the higher-numbered clusters?
@@ -184,7 +186,7 @@ summary(richness)
 It looks there are two outlier samples with a very high observed richness. We can use which() to find it. this will return the item number (not the richness value). The second line of code subsets the total.richness vector to show the value of that index in the vector. 
 ```{r}
 which(richness > 3000)
-richness[c(29,101)] # 7532
+richness[c(29,101)] # 7532, 3694
 d1 <- d[, -c(30,102)]
 f1 <- f[-c(29,101),]
 
@@ -209,7 +211,6 @@ head(f1)
 ```
 
 Now that we have observed richness calculated for all the sites, we can perform statistics on richness. In this case we want to know if richness varies by site, and if it varies by site if we separate soil samples "Soil" from litter samples "Litt".
-
 ```{r}
 summary(aov(richness ~ site, data=f1)) # n.s.
 summary(aov(richness ~ site, data=f1[f1$type=="Soil",])) # p = 0.0386 *
@@ -241,8 +242,7 @@ Now we can measure the other metrics of diversity and add them to the secondary 
 div.b <- t(d1[d1$Taxonomy=="Bacteria",2:184])
 
 Chao.b <- t(estimateR(div.b))
-H.b <- diversity(div.b, index="shannon") # Shannon's diversity
-# this can also calculate simpsons and inverse simpsons
+H.b <- diversity(div.b, index="shannon") # Shannon's diversity; other measures are available, like simpsons and inverse simpsons
 J.b <- H.b/log(specnumber(div.b)) # Pielou's J evenness index
 f2 <- cbind(f1, Chao.b, H.b, J.b)
 ```
@@ -256,7 +256,7 @@ boxplot(richness ~ T, data=f1[f1$type=="Litt",],
 legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
 ```
 
-Here is a different way to plot 
+Here is a different way to plot. Here I'll switch to plotting S.chao1 instead of (observed) richness. 
 ```{r}
 t.test(richness ~ type, data=f2) # . p = 0.0832
 t.test(S.chao1 ~ type, data=f2) # ** p = 0.0075
@@ -283,43 +283,43 @@ ggplot(f2, aes(x = T, y = S.obs, fill = type)) +
   theme_minimal()
 ```
 
+*** Challenge
+Make a new plot of a different measure of diversity using the above code. Try playing around with the color scheme, font sizes, or legend placement. You will need to look at the documentation for boxplot, stripchart, or ggplot to achieve this. 
+
 
 ## 3. Ordination using NMDS & plotting
 
 Now we can start performing our ordination to see trends in the data. Ordination is a kind of multivariate statistics, where the method finds the plane through the data (defined as axis 1 and axis 2) that explain the most variation. This is akin to finding a regression line in two dimensions, but here we're looking through as many dimensions as we have taxa: in this case, 40,852 dimensions. 
 
-First let's remove any rows that have all zeros. 
-```{r}
-comm <- d1[,2:184]
-zeros <- which(rowSums(comm)==0)
-comm1 <- comm[-zeros,]
-```
-
 Let's remove the singletons. These don't add much to the ordination, and make the calculations take extra time. 
 ```{r}
-ones <- which(rowSums(comm)<2)
+ones <- which(rowSums(comm.no0s) < 2)
 d.no1s = d1[-ones,]
-dim(d.no1s) # 890
-comm1 = t(d.no1s[,2:184])
+dim(d.no1s) # 18464 209
+comm.no1s = as.data.frame(t(d.no1s[,2:184]))
 ```
 
 Multidimensional scaling is a non-parametric method of fitting an ordination to community data. This can be a bit slow, so while this is running you can read the documentatoin on metaMDS in R. 
 ```{r}
-mds = metaMDS(comm1, distance="bray", wascores=FALSE)
+mds = metaMDS(comm.no1s, distance="bray", wascores=FALSE)
 mds # 2 dimensions and 0.165 stress, very good solution
 plot(mds, type="t")
 ```
 
-
+If you explore the results, which are contained in the object 'mds', you will find that this is an object with mamy objects, which R calls a list. We can call the part of the list with the coordinates for MDS1 and MDS2 using mds$points. 
 ```{r}
 str(mds)
 ID <- rownames(mds$points)
-mds.f = cbind(f1, as.data.frame(mds$points))
-names(mds.f)
+f3 = cbind(f2, as.data.frame(mds$points))
+names(f3)
+head(f3)
+```
 
+Once the solution is extracted, you use any plotting function you want to visualize your results. Here is a solution using dplyr (to calculate the means and standard errors by group) and ggplot. 
+```{r}
 # Summarize means and confidence intervals
-summary_df <- mds.f %>%
-  group_by(site, T, type) %>%
+summary_df <- f3 %>%
+  group_by(site, T, type, time) %>%
   summarise(
     x_mean = mean(MDS1),
     x_se = sd(MDS1) / sqrt(n()),
@@ -335,11 +335,12 @@ summary_df <- mds.f %>%
   )
 
 # Plot using orientation for error bars
-pch_values <- c("Litt" = 1, "Soil" = 16)  # open circle, filled circle, triangle
+pch_values <- c("Litt" = 1, "Soil" = 16)  # open circle, filled circle
 color_values <- c("SCF" = "blue", "Col2" = "skyblue", "BisV" = "orange", "BisR" = "red")
 
 ggplot(summary_df, aes(x = x_mean, y = y_mean, color = site, shape = type)) +
-  geom_point(size = 3) +
+#  geom_point(size = 3) +
+  geom_point(aes(size = time)) +
   geom_errorbar(aes(ymin = y_lower, ymax = y_upper), width = 0.2) +
   geom_errorbar(aes(xmin = x_lower, xmax = x_upper), height = 0.2) +
   scale_shape_manual(values = pch_values) +
@@ -347,32 +348,39 @@ ggplot(summary_df, aes(x = x_mean, y = y_mean, color = site, shape = type)) +
   labs(title = "NMDS ordination of community with no zeros", x = "MDS1", y = "MDS2") +
   theme_minimal()
 
-# If you use UniFrac, you can just read the PCoA points files into R and
+# If you use UniFrac, you can read the PCoA points files into R and
 # plot in the same way. http://bmf2.colorado.edu/fastunifrac/
-
-help(ordiplot)
-help(ordihull)
 ```
 
+*** Challenge
+Vegan has some smart ways to overlay metadata onto ordination plots. Check out these functions and maybe try one. 
 
-# Three ways to look for statistical clustering of groups
+  help(ordiplot)
+  help(ordihull)
 
+
+Here are some ways to look for statistical clustering of your community by groups. 
+
+Multi response permutation procedure (mrpp) tests whether there is a significant different between two or more groups. The mrpp statistic delta is the overall weighted mean of within-group means of the pairwise dissimilarities among sampling units.
+
+Adonis2 calculates analysis of variance using distance matrices. The default distance method is 'bray', but other methods are available. The function partitions sums of squares of a multivariate data set, and they are directly analogous to MANOVA (multivariate analysis of variance).
+
+Analysis of similarities (ANOSIM) provides a way to test statistically whether there is a significant difference between two or more groups of sampling units. For anosim, R is zero if the grouping is completely random, one if the between group distance far outweighs the within-group distance.
 ```{r}
+mrpp(comm.no1s, f3$type) # A=0.038, p<0.001
+mrpp(comm.no1s, f3$site) # A=0.054, p<0.001
 
-```
+adonis2(comm.no1s ~ f3$type, method="bray") # ***
+adonis2(comm.no1s ~ f3$site, method="bray") # ***
 
-mrpp(comm1, f$type) # A=0.0367, p<0.001
-mrpp(comm1, f$site) # A=0.05662, p<0.001
-
-adonis(comm1 ~ f$type, method="bray") # ***
-adonis(comm1 ~ f$site, method="bray") # ***
-
-anosim.type <- anosim(comm1, f$type)
-summary(anosim.type) # R=0.2042 ***
+anosim.type <- anosim(comm.no1s, f3$type)
+summary(anosim.type) # R=0.2072 ***
 anosim.site <- anosim(comm1, f$site)
 summary(anosim.site) # R=0.2128 *** 
-# anosim R is zero if the grouping is completely random, one if
-# the between group distance far outweighs the within-group distance.
+```
+
+
+
 
 mantel() # to show difference between two sets
 varpart() # with hellinger transformation
