@@ -293,19 +293,63 @@ zeros <- which(rowSums(comm)==0)
 comm1 <- comm[-zeros,]
 ```
 
-Let's remove the singletons  
+Let's remove the singletons. These don't add much to the ordination, and make the calculations take extra time. 
 ```{r}
 ones <- which(rowSums(comm)<2)
 d.no1s = d1[-ones,]
 dim(d.no1s) # 890
+comm1 = t(d.no1s[,2:184])
 ```
 
 Multidimensional scaling is a non-parametric method of fitting an ordination to community data. This can be a bit slow, so while this is running you can read the documentatoin on metaMDS in R. 
 ```{r}
-mds = metaMDS(d.no1s[,2:184], distance="bray", wascores=FALSE)
-mds # 2 dimensions and 0.1412 stress, very good solution
+mds = metaMDS(comm1, distance="bray", wascores=FALSE)
+mds # 2 dimensions and 0.165 stress, very good solution
 plot(mds, type="t")
+```
 
+
+```{r}
+str(mds)
+ID <- rownames(mds$points)
+mds.f = cbind(f1, as.data.frame(mds$points))
+names(mds.f)
+
+# Summarize means and confidence intervals
+summary_df <- mds.f %>%
+  group_by(site, T, type) %>%
+  summarise(
+    x_mean = mean(MDS1),
+    x_se = sd(MDS1) / sqrt(n()),
+    y_mean = mean(MDS2),
+    y_se = sd(MDS2) / sqrt(n()),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    x_lower = x_mean - 1.96 * x_se,
+    x_upper = x_mean + 1.96 * x_se,
+    y_lower = y_mean - 1.96 * y_se,
+    y_upper = y_mean + 1.96 * y_se
+  )
+
+# Plot using orientation for error bars
+pch_values <- c("Litt" = 1, "Soil" = 16)  # open circle, filled circle, triangle
+color_values <- c("SCF" = "blue", "Col2" = "skyblue", "BisV" = "orange", "BisR" = "red")
+
+ggplot(summary_df, aes(x = x_mean, y = y_mean, color = site, shape = type)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = y_lower, ymax = y_upper), width = 0.2) +
+  geom_errorbar(aes(xmin = x_lower, xmax = x_upper), height = 0.2) +
+  scale_shape_manual(values = pch_values) +
+  scale_color_manual(values = color_values) +
+  labs(title = "NMDS ordination of community with no zeros", x = "MDS1", y = "MDS2") +
+  theme_minimal()
+
+# If you use UniFrac, you can just read the PCoA points files into R and
+# plot in the same way. http://bmf2.colorado.edu/fastunifrac/
+
+help(ordiplot)
+help(ordihull)
 ```
 
 
@@ -340,51 +384,6 @@ Plot the solution giving the sites different colors and times different sizes
 
 ```
 
-str(mds)
-mds$points[,1:2]
-mds.f = cbind(f, mds$points[,1], mds$points[,2])
-names(mds.f)
-colnames(mds.f) = c(names(mds.f[1:7]), "mds1", "mds2")
-names(mds.f)
-
-# postscript("Test_NMDS.ps", height=7, width=7)
-# pdf("Test_NMDS.pdf", height=7, width=7)
-
-S = mds.f[mds.f$type=="Soil",]
-L = mds.f[mds.f$type=="Litt",]
-n=6
-sz = c(6, 4, 3, 2.5, 2, 1)
-
-plot(mds.f[,8:9], type="n", xlab="NMDS1", ylab="NMDS2",
-	main="NMDS Ordination with Bray Distance (n=1,000 taxa)")
-
-lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="SCF")),8:9], 
-	pch=21, cex=sz[i]+0.2, col="white", bg="blue"))
-lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="Col2")),8:9], 
-	pch=21, cex=sz[i]+0.2, col="white", bg="skyblue"))
-lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="BisV")),8:9], 
-	pch=21, cex=sz[i]+0.2, col="white", bg="orange"))
-lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="BisR")),8:9], 
-	pch=21, cex=sz[i]+0.2, col="white", bg="red"))
-
-lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="SCF")),8:9], 
-	pch=21, cex=sz[i], col="blue"))
-lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="Col2")),8:9], 
-	pch=21, cex=sz[i], col="skyblue"))
-lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="BisV")),8:9], 
-	pch=21, cex=sz[i], col="orange"))
-lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="BisR")),8:9], 
-	pch=21, cex=sz[i], col="red"))
-
-legend(-1.6,-0.8,c("SCF","Col2","BisV","BisR"), pch=21,
-	col=c("blue","skyblue","orange","red"))
-dev.off()
-
-# If you use UniFrac, you can just read the PCoA points files into R and
-# plot in the same way. http://bmf2.colorado.edu/fastunifrac/
-
-help(ordiplot)
-help(ordihull)
 
 
 ## 4. PCoA and joint plots
