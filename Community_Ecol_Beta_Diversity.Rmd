@@ -11,7 +11,7 @@ editor_options:
 
 This is the second part of two for practicing calculating measures of community diversity. In part 1, we explored the diversity metrics for a single community, or alpha diversity. In this part 2, we will explore the diversity metrics across mutliple communities, or beta diversity. 
 
-# Directions:
+## Directions:
 1. Change "author" on line 3 (above) to your name.
 2. Complete as much of the assignment as possible during class; what you do not complete in class can be done on your own outside of class. 
 3. Use this handout as a guide; it contains a more complete description of data sets along with examples of proper scripting needed to carry out the exercise.
@@ -30,12 +30,12 @@ In this Handout, we will perform the following tasks:
  4. PCoA and joint plots
 
 
-## 1a. Set up environment. 
+### 1a. Set up environment. 
 
 First we will set up our environment and load the libraries we'll need. If you don't have these installed already, use this command to install the packages: 
 
-  install.packages("dplyr")  # for one install
-  install.packages(c("dplyr","vegan","plotrix","ggplot2"))  # for multiple packages
+- install.packages("dplyr")  # for one install
+- install.packages(c("dplyr","vegan","plotrix","ggplot2"))  # for multiple packages
 
 
 ```{r setup, include=FALSE}
@@ -50,7 +50,7 @@ library(ggplot2)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 
-## 1b. Read in files.
+### 1b. Read in files.
  
 ```{r read in data}
 d = read.delim("kmd_test_set.txt", header=T)
@@ -70,7 +70,7 @@ comm <- d[,2:186]
 ```
 
 
-## 1c. Explore the data. 
+### 1c. Explore the data. 
 
 This is a small dataset, but in microbial ecology, it is usual to have thousands to tens of thousands of taxa. These datasets are much to large to view directly, so they have to be explored. 
 
@@ -79,10 +79,10 @@ Think of data exploration as a set of hypotheses that you test, in an iterative 
 What kind of object is my data? What are the dimensions of my data? What are the variable names? What is the structure of my data object? 
 ```{r exploring data}
 class(d)
-dim(d)    # 1000 211
+dim(d)    # 40852 211
 names(d)
-head(d)   # Display the first six rows of the data
-str(d)    # this is the matrix with taxa only
+head(d)   # displays the first six rows of the data
+str(d)    # returns a compact display of the data frame structure
 ```
 We are using many of the same data exploration techniques as we used in the alpha diversity section, but some are different. What are some differences and why can't we use the same methods for alpha and beta diversity?
 >
@@ -99,7 +99,7 @@ head(comm[, grepl("^T1", colnames(comm))])
 Now we can do the same kind of data exploration for the secondary matrix. 
 ```{r}
 class(f)
-dim(f)    # 185 7
+dim(f)    # 185 8
 names(f)
 head(f)   # Display the first six rows of the data
 str(f)  
@@ -143,15 +143,15 @@ print(table.by.Phylum, n = Inf)
 Below, we will calculate measures of diversity for the whole community, which includes the three domains of life. How might you expect them to behave differently across the experimental factors? Calculate diversity separately for Archaea, Bacteria, and Eukaryotes. 
 >
 
-If you wanted to explore metrics of diversity for the domains separately, you'd first need to make subsets for the three domains like this (remove the hashes '#' to un-block the chunk):
-#```{r}
-d.a <- subset(d, Taxonomy == "Archaea")
-d.b <- subset(d, Taxonomy == "Bacteria")
-d.f <- subset(d, Taxonomy == "Eukaryota")
-#```
+If you wanted to explore metrics of diversity for the domains separately, you'd first need to make subsets for the three domains like this:
+
+- d.a <- subset(d, Taxonomy == "Archaea")
+- d.b <- subset(d, Taxonomy == "Bacteria")
+- d.f <- subset(d, Taxonomy == "Eukaryota")
 
 
-## 2. Richness & diversity calculations
+
+### 2. Richness & diversity calculations
 
 Because richness and diversity are properties of single communities, and this dataset is a collection of 185 communities (variables, or columns in 'comm'), we need to make calculations across all the rows. R is very good at matrix algebra; you may want to review this topic ...
 
@@ -287,7 +287,7 @@ ggplot(f2, aes(x = T, y = S.obs, fill = type)) +
 Make a new plot of a different measure of diversity using the above code. Try playing around with the color scheme, font sizes, or legend placement. You will need to look at the documentation for boxplot, stripchart, or ggplot to achieve this. 
 
 
-## 3. Ordination using NMDS & plotting
+### 3. Ordination using NMDS & plotting
 
 Now we can start performing our ordination to see trends in the data. Ordination is a kind of multivariate statistics, where the method finds the plane through the data (defined as axis 1 and axis 2) that explain the most variation. This is akin to finding a regression line in two dimensions, but here we're looking through as many dimensions as we have taxa: in this case, 40,852 dimensions. 
 
@@ -386,7 +386,7 @@ mantel() # to show difference between two sets
 varpart() # with hellinger transformation
 
 
-## 4. PCoA and joint plots
+### 4. PCoA and joint plots
 
 If your data are a 
 
@@ -402,7 +402,6 @@ fit2
 There are some plotting functions that come with these functions, but as before, you can extract the variables from the object 'pcoa' and use whatever plotting function you like (base, lattice, ggplot) to make your displays nice. 
 ```{r}
 plot(pcoa)
-plot(fit2, col="gray", display="sites")
 plot(fit2, p.max=0.1, col="red")
 ```
 
