@@ -28,8 +28,6 @@ In this Handout, we will perform the following tasks:
  2. Richness & diversity calculations
  3. Ordination using NMDS & plotting
  4. PCoA and joint plots
- 5. Iterative t-tests
- 6. Network analysis
 
 
 ## 1a. Set up environment. 
@@ -102,14 +100,19 @@ head(f)   # Display the first six rows of the data
 str(f)  
 ```
 
-As we measure diversity of the community, we will add them to the secondary matrix f. 
-
-
 These are some checks for deciding if the data needs cleaning. 
 ```{r}
-any(is.na(comm))            # Are there any missing values?
+any(is.na(comm))            # Are there any missing (NA) values?
 sum(is.na(comm))            # How many missing values?
 which(is.na(comm))          # Where are the missing values?
+```
+
+We should also check for rows with all zeros, and remove them. 
+```{r}
+zero.y <- which(rowSums(comm)==0)
+comm1 <- comm[-zero.y,]
+
+zero.x <- which(colSums(comm)==0)
 ```
 
 
@@ -238,10 +241,8 @@ div.b <- t(d1[d1$Taxonomy=="Bacteria",2:184])
 Chao.b <- t(estimateR(div.b))
 H.b <- diversity(div.b, index="shannon") # Shannon's diversity
 # this can also calculate simpsons and inverse simpsons
-
 J.b <- H.b/log(specnumber(div.b)) # Pielou's J evenness index
 f2 <- cbind(f1, Chao.b, H.b, J.b)
-
 ```
 
 Now we'll make a plot of richness. This uses base R. 
@@ -251,7 +252,6 @@ boxplot(richness ~ T, data=f1[f1$type=="Soil",], ylab="Richness (number of taxa)
 boxplot(richness ~ T, data=f1[f1$type=="Litt",], 
 	boxwex=0.3, at=1:6 + 0.2, add=TRUE)
 legend(0.5,3000,c("Soil","Litter"), fill=c("grey50","white"))
-
 ```
 
 Here is a different way to plot 
@@ -283,6 +283,127 @@ ggplot(f2, aes(x = T, y = S.obs, fill = type)) +
 
 
 ## 3. Ordination using NMDS & plotting
+
+Now we can start performing our ordination to see trends in the data. Ordination is a kind of multivariate statistics, where the method finds the plane through the data (defined as axis 1 and axis 2) that explain the most variation. This is akin to finding a regression line in two dimensions, but here we're looking through as many dimensions as we have taxa: in this case, 40,852 dimensions. 
+
+First let's remove any rows that have all zeros. 
+```{r}
+comm <- d1[,2:184]
+zeros <- which(rowSums(comm)==0)
+comm1 <- comm[-zeros,]
+```
+
+Let's remove the singletons  
+```{r}
+ones <- which(rowSums(comm)<2)
+d.no1s = d1[-ones,]
+dim(d.no1s) # 890
+```
+
+Multidimensional scaling is a non-parametric method of fitting an ordination to community data. This can be a bit slow, so while this is running you can read the documentatoin on metaMDS in R. 
+```{r}
+mds = metaMDS(d.no1s[,2:184], distance="bray", wascores=FALSE)
+mds # 2 dimensions and 0.1412 stress, very good solution
+plot(mds, type="t")
+
+```
+
+
+# Three ways to look for statistical clustering of groups
+
+```{r}
+
+```
+
+mrpp(comm1, f$type) # A=0.0367, p<0.001
+mrpp(comm1, f$site) # A=0.05662, p<0.001
+
+adonis(comm1 ~ f$type, method="bray") # ***
+adonis(comm1 ~ f$site, method="bray") # ***
+
+anosim.type <- anosim(comm1, f$type)
+summary(anosim.type) # R=0.2042 ***
+anosim.site <- anosim(comm1, f$site)
+summary(anosim.site) # R=0.2128 *** 
+# anosim R is zero if the grouping is completely random, one if
+# the between group distance far outweighs the within-group distance.
+
+mantel() # to show difference between two sets
+varpart() # with hellinger transformation
+decostand() # will do the hellinger transformation for you, but
+			# it seems to be part of varpart so not needed now
+envfit() #
+
+
+Plot the solution giving the sites different colors and times different sizes
+```{r}
+
+```
+
+str(mds)
+mds$points[,1:2]
+mds.f = cbind(f, mds$points[,1], mds$points[,2])
+names(mds.f)
+colnames(mds.f) = c(names(mds.f[1:7]), "mds1", "mds2")
+names(mds.f)
+
+# postscript("Test_NMDS.ps", height=7, width=7)
+# pdf("Test_NMDS.pdf", height=7, width=7)
+
+S = mds.f[mds.f$type=="Soil",]
+L = mds.f[mds.f$type=="Litt",]
+n=6
+sz = c(6, 4, 3, 2.5, 2, 1)
+
+plot(mds.f[,8:9], type="n", xlab="NMDS1", ylab="NMDS2",
+	main="NMDS Ordination with Bray Distance (n=1,000 taxa)")
+
+lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="SCF")),8:9], 
+	pch=21, cex=sz[i]+0.2, col="white", bg="blue"))
+lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="Col2")),8:9], 
+	pch=21, cex=sz[i]+0.2, col="white", bg="skyblue"))
+lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="BisV")),8:9], 
+	pch=21, cex=sz[i]+0.2, col="white", bg="orange"))
+lapply(1:n, function(i) points(S[((S$T==levels(S$T)[i])&(S$site=="BisR")),8:9], 
+	pch=21, cex=sz[i]+0.2, col="white", bg="red"))
+
+lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="SCF")),8:9], 
+	pch=21, cex=sz[i], col="blue"))
+lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="Col2")),8:9], 
+	pch=21, cex=sz[i], col="skyblue"))
+lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="BisV")),8:9], 
+	pch=21, cex=sz[i], col="orange"))
+lapply(1:n, function(i) points(L[((L$T==levels(L$T)[i])&(L$site=="BisR")),8:9], 
+	pch=21, cex=sz[i], col="red"))
+
+legend(-1.6,-0.8,c("SCF","Col2","BisV","BisR"), pch=21,
+	col=c("blue","skyblue","orange","red"))
+dev.off()
+
+# If you use UniFrac, you can just read the PCoA points files into R and
+# plot in the same way. http://bmf2.colorado.edu/fastunifrac/
+
+help(ordiplot)
+help(ordihull)
+
+
 ## 4. PCoA and joint plots
-## 5. Iterative t-tests
-## 6. Network analysis
+
+
+```{r}
+
+```
+
+
+??cmdscale
+comm = t(d[,2:186])
+dmat = vegdist(comm, method="bray")
+pcoa = cmdscale(dmat)
+
+fit2 <- envfit(pcoa, f[,2:7], perm=999, display="sites")
+fit2
+
+plot(pcoa)
+plot(fit2, col="gray", display="sites")
+plot(fit2, p.max=0.1, col="red")
+
