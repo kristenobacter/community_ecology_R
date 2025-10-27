@@ -4,6 +4,7 @@ In our activities, we will be programming in R and Markdown. As for me, I am pro
 
 If you choose, here are some resources for you to practice your coding in R to do ahead of class. It is not necessary, but it will help you feel more comfortable. The activities are aimed at students with very little coding experience. Choose one or any combination based on your needs. 
 
+
 Active learning
 
 https://swirlstats.com/students.html - If you’ve ever played Oregon Trail, then this way of learning will feel quite familiar. If you haven’t played Oregon Trail, it’s a game designed for grade school kids, guiding you along. "No journey is without hardship, and the Oregon Trail taught us that resilience is key to survival."
@@ -11,12 +12,16 @@ https://www.w3schools.com/r/default.asp - An R tutorial that starts from the gro
 https://rstudio.cloud/learn/primers - Free interactive tutorials hosted by RStudio. Covers data visualization, wrangling, modeling, and more. Runs directly in the browser using RStudio Cloud.
 https://www.codecademy.com/learn/learn-r - A free, beginner-friendly R course in an interactive coding environment with instant feedback. Covers basic programming concepts and data analysis.
 https://rstudio.github.io/learnr/ - R package for creating interactive tutorials using R Markdown. Many tutorials are available online, and you can create your own. Great for educators and learners alike.
+
+
 References
 
 https://r4ds.hadley.nz - "R for Data Science" by Hadley Wickham & Garrett Grolemund - Excellent for beginners and intermediate users.
 https://adv-r.hadley.nz - "Advanced R" by Hadley Wickham - For deep dives into R's internals and functional programming.
 "The Art of R Programming" by Norman Matloff - More technical, great for understanding R as a programming language.
 https://www.r-project.org/help.html - A guide to finding documentation in R.
+
+
 Community
 
 R Hacky Hour (https://docs.google.com/forms/d/e/1FAIpQLScZbeGdsXqsZ8OUoJFcottXjbNNGJphBN1h43AIKWzjJVrHiw/viewform) – this graduate student-run weekly meeting is structured as short tutorials every other week, followed by 1 on 1 meetings to review code and a space to code independently while surrounded by fellow coders. If you want to get good at coding, find and invest in your coding community.
